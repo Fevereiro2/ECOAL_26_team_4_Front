@@ -1,5 +1,4 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { mockLighters } from "../../data/mockData";
 import { styles } from "../styles";
 import type { AppColors, Lighter } from "../types";
 
@@ -7,12 +6,13 @@ type CompareModalProps = {
   item: Lighter | null;
   onClose: () => void;
   colors: AppColors;
+  lighters: Lighter[];
 };
 
-export function CompareModal({ item, onClose, colors }: CompareModalProps) {
+export function CompareModal({ item, onClose, colors, lighters }: CompareModalProps) {
   if (!item) return null;
 
-  const candidate = (mockLighters as Lighter[]).find((lighter) => lighter.id !== item.id) ?? item;
+  const candidate = lighters.find((lighter) => lighter.id !== item.id) ?? item;
 
   const rows = [
     { key: "Durability", a: item.criteria.durability, b: candidate.criteria.durability },

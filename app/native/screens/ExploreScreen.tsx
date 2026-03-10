@@ -1,7 +1,6 @@
 import { SlidersHorizontal } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, SafeAreaView, Switch, Text, TextInput, View } from "react-native";
-import { mockLighters } from "../../data/mockData";
 import { CompareModal } from "../components/CompareModal";
 import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
@@ -9,14 +8,14 @@ import { styles } from "../styles";
 import type { Lighter, SharedScreenProps } from "../types";
 
 export function ExploreScreen({ shared }: SharedScreenProps) {
-  const { colors } = shared;
+  const { colors, lighters } = shared;
   const [search, setSearch] = useState("");
   const [showOnlyPublic, setShowOnlyPublic] = useState(true);
   const [selected, setSelected] = useState<Lighter | null>(null);
   const [compare, setCompare] = useState<Lighter | null>(null);
 
   const filtered = useMemo(() => {
-    return (mockLighters as Lighter[]).filter((lighter) => {
+    return lighters.filter((lighter) => {
       if (showOnlyPublic && lighter.visibility !== "public") return false;
       const query = search.toLowerCase().trim();
       if (!query) return true;
@@ -24,7 +23,7 @@ export function ExploreScreen({ shared }: SharedScreenProps) {
         field.toLowerCase().includes(query),
       );
     });
-  }, [search, showOnlyPublic]);
+  }, [lighters, search, showOnlyPublic]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
@@ -57,7 +56,7 @@ export function ExploreScreen({ shared }: SharedScreenProps) {
       />
 
       <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} />
-      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} />
+      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters} />
     </SafeAreaView>
   );
 }

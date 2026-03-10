@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { SafeAreaView, ScrollView, Text, View } from "react-native";
-import { mockLighters } from "../../data/mockData";
 import { CompareModal } from "../components/CompareModal";
 import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
@@ -9,8 +8,8 @@ import { styles } from "../styles";
 import type { Lighter, SharedScreenProps } from "../types";
 
 export function HomeScreen({ shared }: SharedScreenProps) {
-  const { colors } = shared;
-  const featured = (mockLighters as Lighter[]).filter((lighter) => lighter.visibility === "public").slice(0, 3);
+  const { colors, lighters } = shared;
+  const featured = lighters.filter((lighter) => lighter.visibility === "public").slice(0, 3);
   const [selected, setSelected] = useState<Lighter | null>(null);
   const [compare, setCompare] = useState<Lighter | null>(null);
 
@@ -29,7 +28,7 @@ export function HomeScreen({ shared }: SharedScreenProps) {
       </ScrollView>
 
       <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} />
-      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} />
+      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters} />
     </SafeAreaView>
   );
 }

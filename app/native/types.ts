@@ -4,6 +4,7 @@ export type Role = "guest" | "user" | "admin";
 
 export type Lighter = {
   id: string;
+  ownerId: string;
   name: string;
   brand: string;
   year: number;
@@ -38,8 +39,25 @@ export type SharedAppState = {
   colors: AppColors;
   theme: "light" | "dark";
   toggleTheme: () => void;
+  lighters: Lighter[];
+  setLighters: Dispatch<SetStateAction<Lighter[]>>;
+  users: AppUser[];
+  setUsers: Dispatch<SetStateAction<AppUser[]>>;
+  currentUserId: string;
+  setCurrentUserId: Dispatch<SetStateAction<string>>;
+  logout: () => void;
 };
 
 export type SharedScreenProps = {
   shared: SharedAppState;
+};
+
+export type AppUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  avatar?: string;
+  bio?: string;
 };

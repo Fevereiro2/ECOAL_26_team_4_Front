@@ -74,7 +74,8 @@ export const mockLighters = [
 ];
 
 export const mockUsers = [
-  { id: "u1", name: "Guest", role: "guest" },
-  { id: "u2", name: "Collector John", role: "user" },
-  { id: "u3", name: "Admin Vault", role: "admin" }
+  { id: "u1", name: "Visitor Alex", role: "guest" },
+  { id: "u2", name: "Arthur Morgan", role: "user" },
+  { id: "u3", name: "Admin Nora", role: "admin" },
+  { id: "u4", name: "Elena Rossi", role: "user" }
 ];
