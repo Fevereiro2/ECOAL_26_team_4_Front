@@ -1,0 +1,80 @@
+export const mockLighters = [
+  {
+    id: "1",
+    name: "Classic Brass Armor",
+    brand: "Zippo",
+    year: 1941,
+    country: "USA",
+    mechanism: "Petrol Wick",
+    period: "Pre-1950 Vintage",
+    image: "https://images.unsplash.com/photo-1688401830455-390af171a636?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx6aXBwbyUyMGxpZ2h0ZXJ8ZW58MXx8fHwxNzczMTM3NTEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    description: "A timeless classic. The 1941 replica features flat planes with sharper, less rounded edges than the current model.",
+    visibility: "public",
+    criteria: {
+      durability: 9,
+      value: 7,
+      rarity: 6,
+      autonomy: 5,
+    },
+  },
+  {
+    id: "2",
+    name: "Ligne 2 Gold Dust",
+    brand: "S.T. Dupont",
+    year: 1985,
+    country: "France",
+    mechanism: "Flint Wheel",
+    period: "1970–1990 Modern Vintage",
+    image: "https://images.unsplash.com/photo-1724226305376-61fb9c1cdc70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xkJTIwbGlnaHRlcnxlbnwxfHx8fDE3NzMxMzc1MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    description: "Famous for its distinctive 'cling' sound when opened. Finished in luxurious gold dust lacquer.",
+    visibility: "public",
+    criteria: {
+      durability: 8,
+      value: 10,
+      rarity: 8,
+      autonomy: 6,
+    },
+  },
+  {
+    id: "3",
+    name: "Trench Art Flame",
+    brand: "Custom",
+    year: 1918,
+    country: "UK",
+    mechanism: "Petrol Wick",
+    period: "Pre-1950 Vintage",
+    image: "https://images.unsplash.com/photo-1731285709640-fd16e1c15037?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwbGlnaHRlcnxlbnwxfHx8fDE3NzMxMzc1MDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    description: "A genuine WW1 trench lighter crafted from spent artillery shells. A true piece of history.",
+    visibility: "private",
+    criteria: {
+      durability: 7,
+      value: 9,
+      rarity: 10,
+      autonomy: 4,
+    },
+  },
+  {
+    id: "4",
+    name: "Jet Torch Pro",
+    brand: "Colibri",
+    year: 2021,
+    country: "USA",
+    mechanism: "Butane Jet",
+    period: "2010–Present Modern",
+    image: "https://images.unsplash.com/photo-1585336381821-d47d792c7d6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicmFzcyUyMGxpZ2h0ZXJ8ZW58MXx8fHwxNzczMTM3NTEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    description: "A modern, high-performance triple jet flame lighter designed for precise lighting even in windy conditions.",
+    visibility: "public",
+    criteria: {
+      durability: 8,
+      value: 5,
+      rarity: 3,
+      autonomy: 7,
+    },
+  }
+];
+
+export const mockUsers = [
+  { id: "u1", name: "Guest", role: "guest" },
+  { id: "u2", name: "Collector John", role: "user" },
+  { id: "u3", name: "Admin Vault", role: "admin" }
+];
