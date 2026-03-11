@@ -1,21 +1,12 @@
 import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { styles } from "../styles";
-import type { AppColors, Lighter } from "../types";
-
-type DetailModalProps = {
-  item: Lighter | null;
-  onClose: () => void;
-  colors: AppColors;
-};
-
-export function DetailModal({ item, onClose, colors }: DetailModalProps) {
-  if (!item) return null;
-
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+export function DetailModal({ item, onClose, colors }) {
+    if (!item)
+        return null;
+    return (<Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}> 
-          <Image source={{ uri: item.image }} style={styles.modalImage} />
+          <Image source={{ uri: item.image }} style={styles.modalImage}/>
           <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 12 }]}>{item.name}</Text>
           <Text style={{ color: colors.primary }}>{item.brand} • {item.year}</Text>
           <Text style={{ color: colors.muted, marginTop: 6 }}>{item.country} • {item.mechanism}</Text>
@@ -31,6 +22,5 @@ export function DetailModal({ item, onClose, colors }: DetailModalProps) {
           </Pressable>
         </ScrollView>
       </View>
-    </Modal>
-  );
+    </Modal>);
 }
