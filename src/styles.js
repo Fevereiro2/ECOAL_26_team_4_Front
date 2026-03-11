@@ -1,0 +1,297 @@
+import { StyleSheet } from 'react-native';
+import { COLORS } from './constants/colors';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  header: {
+    marginBottom: 18,
+  },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  headerSubtitle: {
+    color: COLORS.sub,
+    marginTop: 6,
+    fontSize: 14,
+  },
+  hero: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+  },
+  heroTitle: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  heroText: {
+    color: COLORS.sub,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  heroButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  primaryButton: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  primaryButtonText: {
+    color: '#111827',
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: COLORS.card2,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 12,
+    marginTop: 6,
+  },
+  search: {
+    backgroundColor: COLORS.card,
+    color: COLORS.text,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  cardImage: {
+    width: '100%',
+    height: 170,
+  },
+  cardBody: {
+    padding: 14,
+  },
+  cardTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+    paddingRight: 12,
+  },
+  cardDescription: {
+    color: COLORS.sub,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  chip: {
+    backgroundColor: COLORS.card2,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  chipText: {
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: '#111827',
+  },
+  miniChip: {
+    backgroundColor: COLORS.card2,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  miniChipText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  detailImage: {
+    width: '100%',
+    height: 280,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  detailBody: {
+    paddingBottom: 40,
+  },
+  detailTitle: {
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: '900',
+    flex: 1,
+    paddingRight: 10,
+  },
+  detailDescription: {
+    color: COLORS.sub,
+    marginTop: 12,
+    lineHeight: 22,
+  },
+  criteriaCard: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    padding: 14,
+  },
+  criteriaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  criteriaLabel: {
+    color: COLORS.sub,
+    fontSize: 15,
+  },
+  criteriaValue: {
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  compareCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 18,
+    marginVertical: 14,
+    alignItems: 'center',
+  },
+  compareTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  compareSubtitle: {
+    color: COLORS.sub,
+    marginVertical: 4,
+  },
+  compareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  compareLabel: {
+    color: COLORS.sub,
+    flex: 1,
+  },
+  compareValue: {
+    color: COLORS.text,
+    width: 80,
+    textAlign: 'right',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    padding: 18,
+    flex: 1,
+    margin: 4,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.text,
+  },
+  statLabel: {
+    color: COLORS.sub,
+    marginTop: 6,
+  },
+  profileCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 20,
+  },
+  profileName: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  profileEmail: {
+    color: COLORS.sub,
+    marginBottom: 14,
+  },
+  divider: {
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
+    marginVertical: 14,
+  },
+  profileSection: {
+    color: COLORS.sub,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  profileText: {
+    color: COLORS.text,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+});
