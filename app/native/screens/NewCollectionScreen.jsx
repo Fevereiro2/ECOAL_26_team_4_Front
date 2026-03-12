@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Alert, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiCollectionToAppCollection } from "../../api/mappers";
+import { getShadow } from "../brand";
+import { Atmosphere } from "../components/Atmosphere";
+import { GradientButton } from "../components/GradientButton";
 import { styles } from "../styles";
 import { requiredText } from "../validation";
 
@@ -14,7 +17,7 @@ function createEmptyForm() {
 }
 
 export function NewCollectionScreen({ shared }) {
-  const { role, colors, authToken, refreshAppData, setCollections, currentUserId } = shared;
+  const { role, colors, authToken, refreshAppData, setCollections, currentUserId, theme } = shared;
   const [formData, setFormData] = useState(createEmptyForm());
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -68,40 +71,43 @@ export function NewCollectionScreen({ shared }) {
   if (role === "guest") {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-        <View style={[styles.emptyWrap, { backgroundColor: colors.panel, borderColor: colors.border }]}>
+        <Atmosphere colors={colors}>
+        <View style={[styles.emptyWrap, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}>
           <Sparkles color={colors.accent} size={28} />
           <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 12 }]}>Create a New Collection</Text>
-          <Text style={{ color: colors.muted, textAlign: "center" }}>
+          <Text style={[styles.bodyText, { color: colors.muted, textAlign: "center" }]}>
             Log in first to create a collection.
           </Text>
         </View>
+        </Atmosphere>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+      <Atmosphere colors={colors}>
+      <ScrollView contentContainerStyle={styles.scrollPad}>
         <View
           style={[
             styles.hero,
+            getShadow(theme, "card"),
             {
               backgroundColor: colors.panel,
               borderColor: colors.border,
             },
           ]}
         >
-          <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 }}>
-            Fresh drop
-          </Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Fresh drop</Text>
           <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>New Collection</Text>
-          <Text style={{ color: colors.muted, lineHeight: 19 }}>
+          <Text style={[styles.bodyText, { color: colors.muted }]}>
             Create a collection with only the two required fields.
           </Text>
         </View>
 
+        <View style={[styles.formCard, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}> 
         <View style={{ marginBottom: 10 }}>
-          <Text style={{ color: colors.muted, marginBottom: 4 }}>Title</Text>
+          <Text style={[styles.inputLabel, { color: colors.muted }]}>Title</Text>
           <TextInput
             value={formData.title}
             onChangeText={(value) => {
@@ -119,11 +125,11 @@ export function NewCollectionScreen({ shared }) {
               },
             ]}
           />
-          {errors.title ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors.title}</Text> : null}
+          {errors.title ? <Text style={[styles.inputError, { color: colors.destructive }]}>{errors.title}</Text> : null}
         </View>
 
         <View style={{ marginBottom: 12 }}>
-          <Text style={{ color: colors.muted, marginBottom: 4 }}>Description</Text>
+          <Text style={[styles.inputLabel, { color: colors.muted }]}>Description</Text>
           <TextInput
             value={formData.description}
             onChangeText={(value) => {
@@ -144,41 +150,23 @@ export function NewCollectionScreen({ shared }) {
               },
             ]}
           />
-          {errors.description ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors.description}</Text> : null}
+          {errors.description ? <Text style={[styles.inputError, { color: colors.destructive }]}>{errors.description}</Text> : null}
         </View>
 
-        <Pressable
-          onPress={saveCollectionItem}
-          disabled={isSaving}
-          style={{
-            borderRadius: 999,
-            backgroundColor: colors.primary,
-            paddingVertical: 14,
-            opacity: isSaving ? 0.7 : 1,
-          }}
-        >
-          <Text style={{ textAlign: "center", color: "#111", fontSize: 16, fontWeight: "900" }}>
-            {isSaving ? "Creating..." : "Create Collection"}
-          </Text>
-        </Pressable>
+        <GradientButton onPress={saveCollectionItem} disabled={isSaving} colors={colors} theme={theme} title={isSaving ? "Creating..." : "Create collection"} />
 
         <Pressable
           onPress={() => {
             setFormData(createEmptyForm());
             setErrors({});
           }}
-          style={{
-            marginTop: 10,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.panel,
-            paddingVertical: 13,
-          }}
+          style={[styles.ghostBtn, { marginTop: 10, borderColor: colors.border, backgroundColor: colors.panelSoft }]}
         >
-          <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Reset Form</Text>
+          <Text style={[styles.ghostBtnText, { color: colors.text }]}>Reset form</Text>
         </Pressable>
+        </View>
       </ScrollView>
+      </Atmosphere>
     </SafeAreaView>
   );
 }

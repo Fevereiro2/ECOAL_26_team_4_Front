@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, SafeAreaView, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { getShadow } from "../brand";
+import { Atmosphere } from "../components/Atmosphere";
 import { CompareModal } from "../components/CompareModal";
 import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
 import { SectionTitle } from "../components/SectionTitle";
 import { styles } from "../styles";
 export function HomeScreen({ shared }) {
-    const { colors, lighters } = shared;
+    const { colors, lighters, theme } = shared;
     const featured = lighters.filter((lighter) => lighter.visibility === "public").slice(0, 3);
     const privateCount = lighters.filter((lighter) => lighter.visibility === "private").length;
     const [selected, setSelected] = useState(null);
@@ -70,12 +72,8 @@ export function HomeScreen({ shared }) {
             burnLoop.stop();
         };
     }, [frameBurn, glowPulse, lighterFloat]);
-    return (<SafeAreaView style={[styles.safe, { backgroundColor: "#120909" }]}>
-      <View style={{ flex: 1 }}>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "#120909" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(12,5,5,0.52)" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(120,18,18,0.12)" }}/>
-        <View style={{ position: "absolute", top: -120, left: -90, width: 260, height: 260, borderRadius: 999, backgroundColor: "rgba(127,29,29,0.34)" }}/>
+    return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <Atmosphere colors={colors} haloScale={1.1}>
         <Animated.View style={{
             position: "absolute",
             right: -40,
@@ -83,16 +81,16 @@ export function HomeScreen({ shared }) {
             width: 230,
             height: 230,
             borderRadius: 999,
-            backgroundColor: "rgba(255,170,64,0.18)",
+            backgroundColor: colors.haloSoft,
             opacity: glowPulse.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.45, 0.9],
+                outputRange: [0.35, 0.85],
             }),
             transform: [
                 {
                     scale: glowPulse.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.9, 1.12],
+                        outputRange: [0.92, 1.08],
                     }),
                 },
             ],
@@ -104,40 +102,27 @@ export function HomeScreen({ shared }) {
             right: compact ? 6 : 10,
             bottom: compact ? 8 : 12,
             borderWidth: 1,
-            borderColor: "rgba(255,210,122,0.12)",
+            borderColor: colors.border,
+            borderRadius: 28,
             opacity: frameBurn.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.16, 0.42],
+                outputRange: [0.12, 0.3],
             }),
         }}/>
 
-        <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 30 }}>
-          <View style={[styles.hero, { backgroundColor: "rgba(20,10,10,0.72)", borderColor: "rgba(255,184,108,0.16)" }]}>
+        <ScrollView contentContainerStyle={styles.scrollPad}>
+          <View style={[styles.hero, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <View style={{ flexDirection: compact ? "column" : "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
               <View style={{ flex: 1 }}>
-                <View style={{
-            alignSelf: "flex-start",
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.18)",
-            backgroundColor: "rgba(255,255,255,0.08)",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-        }}>
-                  <Text style={{ color: "#fef2f2", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 }}>COLLECTOR VAULT</Text>
-                </View>
+                <Text style={[styles.eyebrow, { color: colors.accent }]}>Collector vault</Text>
                 <Image source={require("../../../assets/images/prototypes/profile/Logo.png")} style={{
             width: logoWidth,
             height: logoWidth * 0.42,
             resizeMode: "contain",
             marginTop: 16,
         }}/>
-                <Text style={{ color: "#ffe4e6", fontSize: compact ? 22 : 28, fontWeight: "600", lineHeight: compact ? 28 : 34, marginTop: 8, maxWidth: "88%" }}>
-                  Ignite the story behind every piece
-                </Text>
-                <Text style={{ color: "rgba(255,244,244,0.78)", fontSize: 15, lineHeight: 22, marginTop: 14, maxWidth: "92%" }}>
-                  Track rare lighters, shape your collection, and compare standout finds in one premium mobile vault.
-                </Text>
+                <Text style={[styles.heroTitle, { color: colors.text, marginTop: 8, maxWidth: compact ? "90%" : "74%" }]}>Preserve every piece with quiet confidence.</Text>
+                <Text style={[styles.heroCopy, { color: colors.muted, marginTop: 14, maxWidth: "92%" }]}>Light It turns a lighter collection into a premium catalog: documented, filtered, shareable, and still fully under the collector&apos;s control.</Text>
               </View>
 
               <Animated.View style={{
@@ -165,9 +150,9 @@ export function HomeScreen({ shared }) {
             width: heroSize * 0.86,
             height: heroSize * 0.86,
             borderRadius: 40,
-            backgroundColor: "rgba(16,10,10,0.42)",
+            backgroundColor: colors.elevated,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
+            borderColor: colors.border,
         }}/>
                 <Image source={require("../../../assets/images/prototypes/lighterpng.png")} style={{
             width: heroSize * 0.76,
@@ -178,25 +163,25 @@ export function HomeScreen({ shared }) {
             </View>
 
             <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-              <View style={{ flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.06)", padding: 12 }}>
-                <Text style={{ color: "rgba(255,237,213,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Public rides</Text>
-                <Text style={{ color: "#f97316", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{featured.length}</Text>
+                            <View style={[styles.stat, { backgroundColor: colors.panelSoft, borderColor: colors.border, marginRight: 0 }]}> 
+                                <Text style={[styles.statLabel, { color: colors.muted }]}>Public pieces</Text>
+                                <Text style={[styles.statValue, { color: colors.primary }]}>{featured.length}</Text>
               </View>
-              <View style={{ flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.06)", padding: 12 }}>
-                <Text style={{ color: "rgba(255,237,213,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Locked stash</Text>
-                <Text style={{ color: "#fdba74", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{privateCount}</Text>
+                            <View style={[styles.stat, { backgroundColor: colors.panelSoft, borderColor: colors.border, marginRight: 0 }]}> 
+                                <Text style={[styles.statLabel, { color: colors.muted }]}>Private pieces</Text>
+                                <Text style={[styles.statValue, { color: colors.accent }]}>{privateCount}</Text>
               </View>
             </View>
           </View>
 
-          <View style={{ borderRadius: 26, borderWidth: 1, borderColor: "rgba(255,184,108,0.12)", backgroundColor: "rgba(22,8,8,0.78)", padding: 16 }}>
+                    <View style={[styles.formCard, getShadow(theme, "card"), { borderRadius: 30, borderColor: colors.border, backgroundColor: colors.panel }]}> 
             <SectionTitle title="Featured Machines" subtitle="Top public pieces from the road" colors={colors}/>
-            {featured.map((item) => (<LighterCard key={item.id} lighter={item} colors={colors} onView={setSelected} onCompare={setCompare}/>))}
+                        {featured.map((item) => (<LighterCard key={item.id} lighter={item} colors={colors} theme={theme} onView={setSelected} onCompare={setCompare}/>))}
           </View>
         </ScrollView>
-      </View>
+            </Atmosphere>
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors}/>
-      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters}/>
+            <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} theme={theme}/>
+            <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters} theme={theme}/>
     </SafeAreaView>);
 }

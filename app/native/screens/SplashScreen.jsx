@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, Animated, Easing, Image, SafeAreaView, Text, View, useWindowDimensions } from "react-native";
+import { getShadow } from "../brand";
+import { Atmosphere } from "../components/Atmosphere";
+import { styles } from "../styles";
 export function SplashScreen({ colors }) {
     const lighterFloat = useRef(new Animated.Value(0)).current;
     const glowPulse = useRef(new Animated.Value(0)).current;
@@ -60,13 +63,8 @@ export function SplashScreen({ colors }) {
             burnLoop.stop();
         };
     }, [frameBurn, glowPulse, lighterFloat]);
-    return (<SafeAreaView style={{ flex: 1, backgroundColor: "#120909" }}>
-      <View style={{ flex: 1 }}>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "#120909" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(12,5,5,0.52)" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(120,18,18,0.12)" }}/>
-        <View style={{ position: "absolute", top: -120, left: -90, width: 260, height: 260, borderRadius: 999, backgroundColor: "rgba(127,29,29,0.34)" }}/>
-        <View style={{ position: "absolute", bottom: 120, right: -110, width: 300, height: 300, borderRadius: 999, backgroundColor: "rgba(249,115,22,0.12)" }}/>
+    return (<SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Atmosphere colors={colors} haloScale={1.1}>
         <Animated.View style={{
             position: "absolute",
             top: compact ? 8 : 12,
@@ -74,10 +72,11 @@ export function SplashScreen({ colors }) {
             right: compact ? 6 : 10,
             bottom: compact ? 8 : 12,
             borderWidth: 1,
-            borderColor: "rgba(255,210,122,0.12)",
+            borderColor: colors.border,
+            borderRadius: 28,
             opacity: frameBurn.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.16, 0.42],
+                outputRange: [0.12, 0.28],
             }),
         }}/>
         <Animated.View style={{
@@ -87,10 +86,10 @@ export function SplashScreen({ colors }) {
             width: 230,
             height: 230,
             borderRadius: 999,
-            backgroundColor: "rgba(255,170,64,0.18)",
+            backgroundColor: colors.haloSoft,
             opacity: glowPulse.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.45, 0.9],
+                outputRange: [0.35, 0.85],
             }),
             transform: [
                 {
@@ -102,27 +101,18 @@ export function SplashScreen({ colors }) {
             ],
         }}/>
 
-        <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
+                <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
           <View style={{
-            borderRadius: 28,
+                        ...getShadow("dark", "card"),
+                        borderRadius: 30,
             borderWidth: 1,
-            borderColor: "rgba(255,184,108,0.18)",
-            backgroundColor: "rgba(20,10,10,0.72)",
+                        borderColor: colors.border,
+                        backgroundColor: colors.panel,
             paddingHorizontal: 22,
             paddingVertical: compact ? 28 : 34,
             alignItems: "center",
           }}>
-            <View style={{
-                alignSelf: "center",
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.18)",
-                backgroundColor: "rgba(255,255,255,0.08)",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-            }}>
-              <Text style={{ color: "#fef2f2", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 }}>COLLECTOR VAULT</Text>
-            </View>
+                        <Text style={[styles.eyebrow, { color: colors.accent }]}>Collector vault</Text>
 
             <Image source={require("../../../assets/images/prototypes/profile/Logo.png")} style={{
                 width: logoWidth,
@@ -157,9 +147,9 @@ export function SplashScreen({ colors }) {
                 width: heroSize * 0.86,
                 height: heroSize * 0.86,
                 borderRadius: 40,
-                backgroundColor: "rgba(16,10,10,0.42)",
+                                backgroundColor: colors.elevated,
                 borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.08)",
+                                borderColor: colors.border,
               }}/>
               <Image source={require("../../../assets/images/prototypes/lighterpng.png")} style={{
                 width: heroSize * 0.72,
@@ -172,12 +162,8 @@ export function SplashScreen({ colors }) {
               }}/>
             </Animated.View>
 
-            <Text style={{ color: "#ffe4e6", fontSize: compact ? 22 : 28, fontWeight: "600", textAlign: "center", lineHeight: compact ? 28 : 34, marginTop: 10 }}>
-              Ignite the story behind every piece
-            </Text>
-            <Text style={{ color: "rgba(255,244,244,0.78)", fontSize: 15, lineHeight: 22, marginTop: 14, textAlign: "center", maxWidth: 320 }}>
-              Preparing your premium mobile vault and syncing the collection.
-            </Text>
+                        <Text style={[styles.heroTitle, { color: colors.text, marginTop: 10, textAlign: "center", maxWidth: 320 }]}>Preparing your collector vault.</Text>
+                        <Text style={[styles.heroCopy, { color: colors.muted, marginTop: 14, textAlign: "center", maxWidth: 320 }]}>Syncing collections, profiles, and the warm industrial atmosphere that frames the whole experience.</Text>
 
             <View style={{
                 marginTop: 22,
@@ -186,16 +172,16 @@ export function SplashScreen({ colors }) {
                 gap: 10,
                 borderRadius: 999,
                 borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.12)",
-                backgroundColor: "rgba(255,255,255,0.06)",
+                                borderColor: colors.border,
+                                backgroundColor: colors.panelSoft,
                 paddingHorizontal: 16,
                 paddingVertical: 10,
             }}>
-              <ActivityIndicator color="#f97316" size="small"/>
-              <Text style={{ color: "#fff7ed", fontSize: 14, fontWeight: "700" }}>Opening the vault...</Text>
+                            <ActivityIndicator color={colors.primary} size="small"/>
+                            <Text style={[styles.metaText, { color: colors.text }]}>Opening the vault...</Text>
             </View>
           </View>
         </View>
-      </View>
+            </Atmosphere>
     </SafeAreaView>);
 }

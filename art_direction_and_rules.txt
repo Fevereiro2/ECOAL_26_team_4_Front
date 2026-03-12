@@ -1,0 +1,192 @@
+LightIt - OFFICIAL ART DIRECTION SPECIFICATION
+
+Status:
+Approved and locked as the current design reference.
+This specification is the single source of truth for landing, collection, login, profile, and future account pages.
+
+1) Brand intent:
+Mood: warm industrial, collectible, cinematic, restrained.
+Visual behavior: premium but subtle, never loud or aggressive.
+Design priority: clarity first, atmosphere second.
+
+2) Theme tokens (exact values):
+
+Dark theme tokens:
+--bg: #2B2B2B
+--bg-elevated: rgba(255, 255, 255, 0.06)
+--bg-panel: rgba(255, 255, 255, 0.08)
+--text: #F5F1E8
+--muted: rgba(245, 241, 232, 0.72)
+--border: rgba(255, 255, 255, 0.12)
+--shadow: 0 24px 60px rgba(0, 0, 0, 0.28)
+--button-start: #E87947
+--button-mid: #EFAF53
+--button-end: #F3CF67
+--button-text: #241806
+--button-shadow: rgba(255, 248, 221, 0.22)
+
+Light theme tokens:
+--bg: #EFE5D5
+--bg-elevated: rgba(255, 255, 255, 0.72)
+--bg-panel: rgba(255, 248, 239, 0.90)
+--text: #231F1A
+--muted: rgba(35, 31, 26, 0.70)
+--border: rgba(35, 31, 26, 0.10)
+--shadow: 0 20px 50px rgba(112, 70, 39, 0.14)
+--button-text: #221304
+--button-shadow: rgba(95, 50, 16, 0.18)
+
+Radius tokens:
+--radius-sm: 14px
+--radius-md: 22px
+--radius-lg: 30px
+
+3) Accent gradient rules:
+Gradient orientation is mandatory: top to bottom (180deg).
+Top: #E87947
+Middle (58%): #EFAF53
+Bottom: #F3CF67
+Yellow must stay at the bottom.
+Use this gradient for primary CTA, important accents, and brand marks only.
+Text over gradient uses a subtle shadow: 0 1px 2px with tokenized shadow color.
+Avoid high-contrast or saturated orange/yellow variants.
+
+4) Typography:
+Heading font family: "Syne", sans-serif.
+Body/UI font family: "Space Grotesk", sans-serif.
+
+Heading system:
+h1: clamp(2.4rem, 8vw, 5.2rem), line-height 0.95, max-width 10ch.
+h2: clamp(1.8rem, 5vw, 3rem), line-height 1.
+.page-title: clamp(2.1rem, 7vw, 4.3rem), max-width 14ch.
+
+Support text:
+.eyebrow: 0.75rem, uppercase, letter-spacing 0.18em, margin-bottom 10px.
+.hero-copy and supporting copy: line-height 1.6.
+.card-meta: 0.92rem.
+.price-tag: 1.1rem.
+
+5) Layout system and spacing:
+Mobile-first is required.
+
+Global container:
+.page-shell width: min(1120px, calc(100% - 32px)) on mobile.
+.page-shell width: min(1120px, calc(100% - 48px)) from 700px and up.
+.page-shell padding: 18px top, 0 horizontal, 48px bottom.
+From 700px: top padding becomes 26px.
+
+Primary section spacing:
+Hero padding: 18px mobile, 24px at >=700px, 28px at >=960px.
+Collection section top padding: 34px.
+Spotlight panel margin-top: 24px, padding: 22px.
+
+Common internal gaps:
+Topbar gap: 16px.
+Hero actions gap: 12px.
+Section heading gap: 10px.
+Card and module internal rhythm: 12px, 14px, 16px, 18px, and 22px depending on component role.
+
+6) Surface and border model:
+Core cards/panels use:
+border: 1px solid var(--border)
+border-radius: var(--radius-md)
+background: var(--bg-panel)
+backdrop-filter: blur(16px)
+
+Hero shell uses:
+border-radius: var(--radius-lg)
+overlay gradient background and tokenized shadow.
+
+7) Background and ambiance:
+Body background stack must include:
+Two subtle radial warm halos.
+A light vertical atmospheric gradient layer.
+Base color token var(--bg).
+
+Texture overlay:
+Fixed pseudo-element with grid-like pattern.
+Opacity remains subtle (0.3).
+Must not interfere with readability.
+
+8) Navigation and alignment rules:
+Topbar is flex, aligned center, justify-content space-between, wrap enabled.
+Brand is left-aligned with inline mark and text.
+Quick links are inline-flex, wrapping allowed, 8px gap.
+Theme toggle remains in topbar and visually aligned with nav links.
+
+Nav links:
+Padding: 10px 14px.
+Radius: pill (999px).
+Default color: muted.
+Hover/focus/active: elevated background, visible border, text switches to primary text.
+
+9) Buttons and interaction rules:
+CTA, card button, and major submit buttons:
+Min height: 48px.
+Horizontal padding: 18px.
+Radius: 16px.
+Gradient background per official gradient rules.
+
+Ghost button:
+Transparent background with 1px border.
+
+Interaction motion:
+Hover/focus-visible: translateY(-2px), controlled shadow.
+Active: translateY(1px) scale(0.98).
+Transitions are short (160ms range for controls, 220ms for theme transitions).
+
+Reduced motion support:
+When prefers-reduced-motion is active, disable animations and transitions.
+
+10) Component specifications:
+
+Collection cards:
+Card visual area min-height: 180px, padding: 18px.
+Card image: width 100%, height 220px, object-fit cover, border-radius 18px.
+Card content padding: 18px.
+
+Hero stats:
+Three-column grid, gap 12px, item padding 14px.
+
+Login form:
+Inputs min-height: 50px.
+Input horizontal padding: 16px.
+Input radius: 16px.
+Form group gap: 8px.
+Auth form vertical gap: 16px.
+Submit button width: 100%.
+
+Profile modules:
+Avatar: 96x96, radius 28px.
+Profile stats grid: 3 columns, gap 12px.
+Saved item card: grid 92px / 1fr, gap 14px, padding 12px.
+Saved image: 92x92, radius 18px.
+
+11) Responsive behavior (exact breakpoints):
+
+Default (mobile):
+Single-column layouts for split and profile sections.
+Collection grid is single column.
+
+At min-width 700px:
+Collection grid becomes 2 columns.
+Spotlight panel becomes 2 columns (1.2fr / 1fr).
+Login split layout: 1.05fr / 0.95fr.
+Profile layout: 1.05fr / 0.95fr.
+Profile header becomes 2 columns (96px / 1fr).
+
+At min-width 960px:
+Collection grid becomes 4 columns.
+Hero internal padding increases to 28px.
+
+12) Content and language rules:
+All UI text, labels, code naming, and comments must be in English.
+Structure must be clean, clear, precise, and logically organized.
+Keep component behavior and visuals consistent across all pages.
+
+13) Non-negotiable implementation constraints:
+Do not change gradient direction (must remain top-to-bottom with yellow at bottom).
+Do not introduce a cold neutral palette that breaks warm ambiance.
+Do not introduce hard corners unless explicitly requested.
+Do not create visual noise that competes with readability.
+If unsure, choose subtle warmth over strong contrast.

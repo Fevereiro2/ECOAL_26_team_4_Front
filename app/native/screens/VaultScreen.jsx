@@ -3,7 +3,10 @@ import { useMemo, useState } from "react";
 import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter } from "../../api/mappers";
+import { getShadow } from "../brand";
+import { Atmosphere } from "../components/Atmosphere";
 import { DetailModal } from "../components/DetailModal";
+import { GradientButton } from "../components/GradientButton";
 import { styles } from "../styles";
 import { toSafeLighterPatch, validateLighterForm } from "../validation";
 function toFormState(lighter) {
@@ -33,7 +36,7 @@ function toFormState(lighter) {
     };
 }
 export function VaultScreen({ shared }) {
-    const { role, colors, lighters, setLighters, currentUserId, authToken, refreshAppData } = shared;
+  const { role, colors, lighters, setLighters, currentUserId, authToken, refreshAppData, theme } = shared;
     const [query, setQuery] = useState("");
     const [selected, setSelected] = useState(null);
     const [editing, setEditing] = useState(null);
@@ -47,13 +50,15 @@ export function VaultScreen({ shared }) {
         : "0";
     if (role === "guest") {
         return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-        <View style={[styles.emptyWrap, { backgroundColor: colors.panel, borderColor: colors.border }]}>
+        <Atmosphere colors={colors}>
+        <View style={[styles.emptyWrap, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}>
           <Shield color={colors.accent} size={28}/>
           <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 12 }]}>Vault Locked</Text>
-          <Text style={{ color: colors.muted, textAlign: "center" }}>
+          <Text style={[styles.bodyText, { color: colors.muted, textAlign: "center" }]}>
             Sign in from Profile to manage your private collection.
           </Text>
         </View>
+        </Atmosphere>
       </SafeAreaView>);
     }
     const openCreateForm = () => {
@@ -135,52 +140,39 @@ export function VaultScreen({ shared }) {
         }
     };
     return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <Atmosphere colors={colors}>
       <View style={styles.screenPad}>
-        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 }}>Club garage</Text>
-        <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>My Vault</Text>
-        <Text style={{ color: colors.muted, marginBottom: 14, lineHeight: 19 }}>
-          Your private garage for collector pieces, tuned notes and road-ready comparisons.
-        </Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Private vault</Text>
+        <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>Shape your personal archive.</Text>
+        <Text style={[styles.bodyText, { color: colors.muted, marginBottom: 14, maxWidth: "92%" }]}>This is the quiet side of Light It: your own pieces, your notes, your publishing choices, and a cleaner command of the collection.</Text>
         <View style={styles.rowBetween}>
-          <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Machines</Text>
-            <Text style={{ color: colors.primary, fontSize: 22, fontWeight: "900" }}>{myLighters.length}</Text>
+          <View style={[styles.stat, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Pieces</Text>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{myLighters.length}</Text>
           </View>
-          <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Road score</Text>
-            <Text style={{ color: colors.accent, fontSize: 22, fontWeight: "900" }}>{avgValue}/10</Text>
+          <View style={[styles.stat, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>Average value</Text>
+            <Text style={[styles.statValue, { color: colors.accent }]}>{avgValue}/10</Text>
           </View>
         </View>
         <TextInput placeholder="Search your collection" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[
             styles.singleInput,
             { color: colors.text, backgroundColor: colors.panel, borderColor: colors.border },
         ]}/>
-        <Pressable onPress={openCreateForm} style={{
-            marginTop: 8,
-            borderRadius: 999,
-            backgroundColor: colors.primary,
-            paddingVertical: 13,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-        }}>
-          <Plus color="#1a120d" size={18}/>
-          <Text style={{ color: "#1a120d", fontWeight: "900", letterSpacing: 0.4 }}>Add New Lighter</Text>
-        </Pressable>
+        <GradientButton onPress={openCreateForm} colors={colors} theme={theme} title="Add new lighter" icon={<Plus color={colors.buttonText} size={18}/>}/>
       </View>
 
       <FlatList data={myLighters} keyExtractor={(item) => item.id} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }} renderItem={({ item }) => (<View style={[styles.listRow, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Pressable onPress={() => setSelected(item)} style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 10 }}>
               <Image source={{ uri: item.image }} style={styles.thumb}/>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: "700" }} numberOfLines={1}>
+                <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18 }]} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                <Text style={[styles.metaText, { color: colors.muted }]}>
                   {item.brand} • {item.year}
                 </Text>
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "800", textTransform: "uppercase" }}>{item.mechanism}</Text>
+                <Text style={[styles.metaText, { color: colors.primary, textTransform: "uppercase" }]}>{item.mechanism}</Text>
               </View>
             </Pressable>
 
@@ -194,11 +186,12 @@ export function VaultScreen({ shared }) {
             </View>
           </View>)}/>
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors}/>
+      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} theme={theme}/>
 
       <Modal visible={formOpen} transparent animationType="slide" onRequestClose={() => setFormOpen(false)}>
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.modalBackdrop }]}> 
           <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}> 
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]}/>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{editing ? "Edit Lighter" : "Add Lighter"}</Text>
 
             {[
@@ -211,7 +204,7 @@ export function VaultScreen({ shared }) {
             ["image", "Image URL"],
             ["description", "Description"],
         ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
-                <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
+                <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
                 <TextInput value={formData[field]} onChangeText={(value) => {
                 setFormData((prev) => ({ ...prev, [field]: value }));
                 setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -219,13 +212,14 @@ export function VaultScreen({ shared }) {
                 color: colors.text,
                 borderColor: errors[field] ? "#ef4444" : colors.border,
                 borderWidth: 1,
-                borderRadius: 10,
+                borderRadius: 16,
                 paddingHorizontal: 12,
                 paddingVertical: 10,
                 minHeight: field === "description" ? 90 : undefined,
                 textAlignVertical: field === "description" ? "top" : "center",
+                fontFamily: styles.singleInput.fontFamily,
             }}/>
-                {errors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors[field]}</Text> : null}
+                {errors[field] ? <Text style={[styles.inputError, { color: colors.destructive }]}>{errors[field]}</Text> : null}
               </View>))}
 
             <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
@@ -251,14 +245,13 @@ export function VaultScreen({ shared }) {
               </Pressable>
             </View>
 
-            <Pressable onPress={saveForm} style={[styles.closeBtn, { backgroundColor: colors.primary }]}> 
-              <Text style={styles.actionBtnText}>{editing ? "Save Changes" : "Create Lighter"}</Text>
-            </Pressable>
-            <Pressable onPress={() => setFormOpen(false)} style={[styles.closeBtn, { backgroundColor: colors.border }]}> 
-              <Text style={{ color: colors.text, fontWeight: "700" }}>Cancel</Text>
+            <GradientButton onPress={saveForm} colors={colors} theme={theme} title={editing ? "Save changes" : "Create lighter"} style={{ marginTop: 12 }}/>
+            <Pressable onPress={() => setFormOpen(false)} style={[styles.ghostBtn, { marginTop: 10, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+              <Text style={[styles.ghostBtnText, { color: colors.text }]}>Cancel</Text>
             </Pressable>
           </ScrollView>
         </View>
       </Modal>
+      </Atmosphere>
     </SafeAreaView>);
 }

@@ -5,7 +5,11 @@ import { Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, T
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter, mapApiUserToAppUser } from "../../api/mappers";
 import { resolveAvatarSource, storeAvatarLocally } from "../avatarStorage";
+import { getShadow } from "../brand";
+import { Atmosphere } from "../components/Atmosphere";
 import { DetailModal } from "../components/DetailModal";
+import { GradientButton } from "../components/GradientButton";
+import { styles } from "../styles";
 import { requiredText, toSafeLighterPatch, validateEmail, validateLighterForm, validatePassword, } from "../validation";
 
 const avatarPlaceholder = require("../../../assets/images/prototypes/profile/posts.png");
@@ -451,83 +455,99 @@ export function ProfileScreen({ shared }) {
         });
     };
     return (<SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View style={{ marginHorizontal: -16, marginTop: -16, backgroundColor: colors.panelSoft, borderBottomWidth: 1, borderBottomColor: colors.border, padding: 18, paddingBottom: 64 }}>
+      <Atmosphere colors={colors}>
+      <ScrollView contentContainerStyle={styles.scrollPad}>
+        <View style={[styles.hero, getShadow(theme, "card"), { backgroundColor: colors.panel, borderColor: colors.border, paddingBottom: 28, marginBottom: 22 }]}>
           <View style={{ alignItems: "flex-end" }}>
-            <Pressable onPress={openSettings}>
-              <Text style={{ color: colors.accent, fontSize: 28, fontWeight: "800", letterSpacing: 0.4 }}>Settings</Text>
+            <Pressable onPress={openSettings} style={[styles.ghostBtn, { borderColor: colors.border, backgroundColor: colors.panelSoft, minHeight: 44, paddingHorizontal: 16 }]}>
+              <Text style={[styles.ghostBtnText, { color: colors.text }]}>Settings</Text>
             </Pressable>
           </View>
 
-          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <Image source={currentAvatarSource.uri ? { uri: currentAvatarSource.uri } : avatarPlaceholder} style={{ width: 160, height: 160, borderRadius: 999, borderWidth: 3, borderColor: colors.accent, marginBottom: -78 }}/>
+          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+            <Image source={currentAvatarSource.uri ? { uri: currentAvatarSource.uri } : avatarPlaceholder} style={{ width: 104, height: 104, borderRadius: 28, borderWidth: 1, borderColor: colors.border }}/>
             <Text style={{
             color: colors.text,
-            fontSize: 44,
-            fontWeight: "900",
-            lineHeight: 46,
+            fontSize: 40,
+            fontFamily: "Syne_700Bold",
+            lineHeight: 38,
             textAlign: "right",
-            maxWidth: "56%",
+            maxWidth: "62%",
             flexShrink: 1,
         }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>
               {displayName}
             </Text>
           </View>
+
+          <View style={styles.statsGrid}>
+            <View style={[styles.stat, { marginRight: 0, backgroundColor: colors.panelSoft, borderColor: colors.border }]}>
+              <Text style={[styles.statLabel, { color: colors.muted }]}>Role</Text>
+              <Text style={[styles.statValue, { color: colors.primary, fontSize: 20, lineHeight: 20 }]}>{roleText}</Text>
+            </View>
+            <View style={[styles.stat, { marginRight: 0, backgroundColor: colors.panelSoft, borderColor: colors.border }]}>
+              <Text style={[styles.statLabel, { color: colors.muted }]}>Collections</Text>
+              <Text style={[styles.statValue, { color: colors.accent }]}>{myCollections.length}</Text>
+            </View>
+            <View style={[styles.stat, { marginRight: 0, backgroundColor: colors.panelSoft, borderColor: colors.border }]}>
+              <Text style={[styles.statLabel, { color: colors.muted }]}>Wanted</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>{mostWanted.length}</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={{ alignItems: "flex-end", marginTop: 34, marginBottom: 18 }}>
-          <Text style={{ color: colors.muted, fontSize: 24, fontWeight: "700", lineHeight: 31, textAlign: "right", maxWidth: "78%" }}>
+        <View style={{ alignItems: "flex-end", marginTop: 0, marginBottom: 18 }}>
+          <Text style={[styles.bodyText, { color: colors.muted, fontSize: 18, lineHeight: 28, textAlign: "right", maxWidth: "86%" }]}>
             {displayBio}
           </Text>
         </View>
 
-        <View style={{ borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 3, flexDirection: "row", marginBottom: 16 }}>
-          <Pressable onPress={() => setTab("collection")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "collection" ? colors.panel : "transparent", borderWidth: tab === "collection" ? 1 : 0, borderColor: colors.primary }}>
-            <Text style={{ textAlign: "center", color: tab === "collection" ? colors.primary : colors.muted, fontSize: 18, fontWeight: "800" }}>
+        <View style={[styles.segmentedWrap, { borderColor: colors.border, backgroundColor: colors.panelSoft, marginBottom: 16 }]}>
+          <Pressable onPress={() => setTab("collection")} style={[styles.segmentedOption, tab === "collection" && { backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border }]}>
+            <Text style={[styles.segmentedText, { color: tab === "collection" ? colors.text : colors.muted }]}>
               My Collection
             </Text>
           </Pressable>
-          <Pressable onPress={() => setTab("wanted")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "wanted" ? colors.panel : "transparent", borderWidth: tab === "wanted" ? 1 : 0, borderColor: colors.accent }}>
-            <Text style={{ textAlign: "center", color: tab === "wanted" ? colors.accent : colors.muted, fontSize: 18, fontWeight: "800" }}>
+          <Pressable onPress={() => setTab("wanted")} style={[styles.segmentedOption, tab === "wanted" && { backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border }]}>
+            <Text style={[styles.segmentedText, { color: tab === "wanted" ? colors.text : colors.muted }]}>
               Most Wanted
             </Text>
           </Pressable>
         </View>
 
-        {tab === "collection" && role !== "guest" ? (<View style={{ marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14 }}>
-            <Text style={{ color: colors.text, fontSize: 16, fontWeight: "800" }}>My Collections</Text>
-            <Text style={{ color: colors.muted, marginTop: 4 }}>
+        {tab === "collection" && role !== "guest" ? (<View style={[styles.formCard, getShadow(theme, "card"), { marginBottom: 12, borderColor: colors.border, backgroundColor: colors.panel, padding: 14 }]}>
+            <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18 }]}>My Collections</Text>
+            <Text style={[styles.bodyText, { color: colors.muted, marginTop: 4 }]}>
               Collections created in the `New` tab appear here.
             </Text>
           </View>) : null}
 
-        {listToRender.length === 0 ? (<View style={{ borderRadius: 18, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 20 }}>
-            <Text style={{ color: colors.muted, fontSize: 16, textAlign: "center" }}>
+        {listToRender.length === 0 ? (<View style={[styles.formCard, { borderColor: colors.border, backgroundColor: colors.panel, padding: 20 }]}>
+            <Text style={[styles.bodyText, { color: colors.muted, textAlign: "center" }]}>
               {tab === "collection" ? "No collections created yet." : "No lighters found in this section yet."}
             </Text>
           </View>) : null}
 
         {tab === "collection"
-            ? listToRender.map((collection) => (<View key={collection.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14, marginBottom: 10 }}>
-                <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800" }} numberOfLines={1}>
+            ? listToRender.map((collection) => (<View key={collection.id} style={[styles.formCard, getShadow(theme, "card"), { borderColor: colors.border, backgroundColor: colors.panel, padding: 14, marginBottom: 10 }]}>
+                <Text style={[styles.cardTitle, { color: colors.text, fontSize: 20, lineHeight: 20 }]} numberOfLines={1}>
                   {collection.title}
                 </Text>
-                <Text style={{ color: colors.muted, marginTop: 6, lineHeight: 20 }}>
+                <Text style={[styles.bodyText, { color: colors.muted, marginTop: 6 }]}>
                   {collection.description}
                 </Text>
-                <Text style={{ color: colors.primary, marginTop: 8, fontWeight: "700" }}>
+                <Text style={[styles.metaText, { color: colors.primary, marginTop: 8 }]}>
                   {collection.itemCount} items
                 </Text>
-                <Pressable onPress={() => openCollection(collection)} style={{ marginTop: 10, alignSelf: "flex-start", borderRadius: 999, borderWidth: 1, borderColor: colors.accent, paddingHorizontal: 14, paddingVertical: 8 }}>
-                  <Text style={{ color: colors.accent, fontWeight: "700" }}>
+                <Pressable onPress={() => openCollection(collection)} style={[styles.ghostBtn, { marginTop: 10, alignSelf: "flex-start", minHeight: 42, borderColor: colors.border, backgroundColor: colors.panelSoft }]}>
+                  <Text style={[styles.ghostBtnText, { color: colors.text }]}>
                     Open collection
                   </Text>
                 </Pressable>
               </View>))
-            : listToRender.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 12, flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+            : listToRender.map((lighter) => (<View key={lighter.id} style={[styles.listRow, getShadow(theme, "card"), { borderColor: colors.border, backgroundColor: colors.panel }]}>
                 <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                  <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
-                  <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800", flex: 1 }} numberOfLines={1}>
+                  <Image source={{ uri: lighter.image }} style={{ width: 64, height: 64, borderRadius: 18, marginRight: 12 }}/>
+                  <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18, flex: 1 }]} numberOfLines={1}>
                     {lighter.name}
                   </Text>
                 </Pressable>
@@ -546,12 +566,12 @@ export function ProfileScreen({ shared }) {
               </View>))}
 
         {role === "admin" ? (<>
-            <Text style={{ color: colors.text, fontSize: 22, fontWeight: "900", marginTop: 18, marginBottom: 10 }}>Admin Users</Text>
-            {users.map((user) => (<View key={user.id} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 10, marginBottom: 10, backgroundColor: colors.panel, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 28, lineHeight: 28, marginTop: 18, marginBottom: 10 }]}>Admin Users</Text>
+            {users.map((user) => (<View key={user.id} style={[styles.listRow, { borderColor: colors.border, backgroundColor: colors.panel, justifyContent: "space-between" }]}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={{ color: colors.text, fontWeight: "700" }}>{user.name}</Text>
-                  <Text style={{ color: colors.muted }}>{user.email || "Public user record"}</Text>
-                  <Text style={{ color: colors.primary, textTransform: "capitalize" }}>{user.role}</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18 }]}>{user.name}</Text>
+                  <Text style={[styles.bodyText, { color: colors.muted }]}>{user.email || "Public user record"}</Text>
+                  <Text style={[styles.metaText, { color: colors.primary, textTransform: "capitalize" }]}>{user.role}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 12 }}>
                   <Pressable onPress={() => openUserEditor(user)}>
@@ -563,12 +583,12 @@ export function ProfileScreen({ shared }) {
                 </View>
               </View>))}
 
-            <Text style={{ color: colors.text, fontSize: 22, fontWeight: "900", marginTop: 12, marginBottom: 10 }}>Admin Products</Text>
-            {lighters.map((lighter) => (<View key={lighter.id} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 10, marginBottom: 10, backgroundColor: colors.panel, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 28, lineHeight: 28, marginTop: 12, marginBottom: 10 }]}>Admin Products</Text>
+            {lighters.map((lighter) => (<View key={lighter.id} style={[styles.listRow, { borderColor: colors.border, backgroundColor: colors.panel, justifyContent: "space-between" }]}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={{ color: colors.text, fontWeight: "700" }}>{lighter.name}</Text>
-                  <Text style={{ color: colors.muted }}>{lighter.brand} • {lighter.year}</Text>
-                  <Text style={{ color: colors.primary }}>Owner: {lighter.ownerId}</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18 }]}>{lighter.name}</Text>
+                  <Text style={[styles.bodyText, { color: colors.muted }]}>{lighter.brand} • {lighter.year}</Text>
+                  <Text style={[styles.metaText, { color: colors.primary }]}>Owner: {lighter.ownerId}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 12 }}>
                   <Pressable onPress={() => openLighterEditor(lighter)}>
@@ -581,16 +601,18 @@ export function ProfileScreen({ shared }) {
               </View>))}
           </>) : null}
 
-        {role !== "guest" ? (<Pressable onPress={confirmLogout} style={{ marginTop: 12, borderWidth: 1, borderColor: "#ef4444", borderRadius: 999, paddingVertical: 14, backgroundColor: colors.panel }}>
-            <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "800" }}>Logout</Text>
+        {role !== "guest" ? (<Pressable onPress={confirmLogout} style={[styles.ghostBtn, { marginTop: 12, borderColor: colors.destructive, backgroundColor: colors.panel }]}>
+            <Text style={[styles.ghostBtnText, { color: colors.destructive }]}>Logout</Text>
           </Pressable>) : null}
       </ScrollView>
+      </Atmosphere>
 
       <Modal visible={isSettingsOpen && !!settingsForm} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.modalBackdrop }}>
           <Pressable onPress={() => setIsSettingsOpen(false)} style={{ ...StyleSheet.absoluteFillObject }}/>
-          <ScrollView style={{ maxHeight: "84%", backgroundColor: "#f4f4f5", borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: "#e5e7eb", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
-            <Text style={{ color: "#111", fontSize: 30, fontWeight: "800", marginBottom: 8 }}>Settings</Text>
+          <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]}/>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Settings</Text>
             {settingsForm ? (<>
                 {[
                 ["name", "Display Name"],
@@ -598,38 +620,38 @@ export function ProfileScreen({ shared }) {
                 ["bio", "Bio"],
                 ["password", "New Password (optional)"],
             ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
-                    <Text style={{ color: "#52525b", marginBottom: 4 }}>{label}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
                     <TextInput value={settingsForm[field]} onChangeText={(value) => {
                     if (field === "email")
                         return;
                     setSettingsForm((prev) => (prev ? { ...prev, [field]: value } : prev));
                     setSettingsErrors((prev) => ({ ...prev, [field]: "" }));
-                }} autoCapitalize={field === "email" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={field === "bio"} editable={field !== "email"} selectTextOnFocus={field !== "email"} style={{ color: field === "email" ? "#71717a" : "#111", borderColor: settingsErrors[field] ? "#ef4444" : "#d4d4d8", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: field === "email" ? "#f4f4f5" : "#fdfdfd", minHeight: field === "bio" ? 84 : undefined, textAlignVertical: field === "bio" ? "top" : "center" }}/>
-                    {field === "email" ? <Text style={{ color: "#71717a", marginTop: 4 }}>The email is fixed and cannot be changed here.</Text> : null}
-                    {settingsErrors[field] ? <Text style={{ color: "#dc2626", marginTop: 4 }}>{settingsErrors[field]}</Text> : null}
+                }} autoCapitalize={field === "email" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={field === "bio"} editable={field !== "email"} selectTextOnFocus={field !== "email"} style={{ color: field === "email" ? colors.muted : colors.text, borderColor: settingsErrors[field] ? colors.destructive : colors.border, borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: field === "email" ? colors.elevated : colors.panelSoft, minHeight: field === "bio" ? 84 : undefined, textAlignVertical: field === "bio" ? "top" : "center" }}/>
+                    {field === "email" ? <Text style={[styles.metaText, { color: colors.muted, marginTop: 4 }]}>The email is fixed and cannot be changed here.</Text> : null}
+                    {settingsErrors[field] ? <Text style={[styles.inputError, { color: colors.destructive }]}>{settingsErrors[field]}</Text> : null}
                   </View>))}
 
                 <View style={{ marginTop: 10 }}>
-                  <Text style={{ color: "#52525b", marginBottom: 6 }}>Photo Picker</Text>
-                  <Text style={{ color: "#71717a", marginBottom: 8, lineHeight: 19 }}>
+                  <Text style={[styles.inputLabel, { color: colors.muted, marginBottom: 6 }]}>Photo Picker</Text>
+                  <Text style={[styles.bodyText, { color: colors.muted, marginBottom: 8 }]}>
                     The app stores the selected photo locally, generates an `avatar_hash`, and only sends that hash to the API.
                   </Text>
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Pressable onPress={pickPhotoFromLibrary} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                      <Text style={{ textAlign: "center", color: "#111", fontWeight: "600" }}>
+                    <Pressable onPress={pickPhotoFromLibrary} style={[styles.ghostBtn, { flex: 1, minHeight: 44, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                      <Text style={[styles.ghostBtnText, { color: colors.text, fontSize: 13 }]}> 
                         {pickerBusy ? "Opening..." : "Choose from Gallery"}
                       </Text>
                     </Pressable>
-                    <Pressable onPress={takePhotoWithCamera} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                      <Text style={{ textAlign: "center", color: "#111", fontWeight: "600" }}>
+                    <Pressable onPress={takePhotoWithCamera} style={[styles.ghostBtn, { flex: 1, minHeight: 44, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                      <Text style={[styles.ghostBtnText, { color: colors.text, fontSize: 13 }]}> 
                         {pickerBusy ? "Opening..." : "Take Photo"}
                       </Text>
                     </Pressable>
                   </View>
-                  <Pressable onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatarHash: "", avatarUrl: "" } : prev))} style={{ marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                    <Text style={{ textAlign: "center", color: "#52525b", fontWeight: "600" }}>Use Default Photo</Text>
+                  <Pressable onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatarHash: "", avatarUrl: "" } : prev))} style={[styles.ghostBtn, { marginTop: 8, minHeight: 44, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                    <Text style={[styles.ghostBtnText, { color: colors.text, fontSize: 13 }]}>Use Default Photo</Text>
                   </Pressable>
-                  <Text style={{ color: "#71717a", marginTop: 8 }}>
+                  <Text style={[styles.metaText, { color: colors.muted, marginTop: 8 }]}> 
                     {settingsForm.avatarHash
                         ? `avatar_hash: ${settingsForm.avatarHash}`
                         : settingsForm.avatarUrl
@@ -639,15 +661,13 @@ export function ProfileScreen({ shared }) {
                 </View>
 
                 <View style={{ marginTop: 10, alignItems: "center" }}>
-                  <Image source={settingsAvatarSource.uri ? { uri: settingsAvatarSource.uri } : avatarPlaceholder} style={{ width: 104, height: 104, borderRadius: 999, borderWidth: 2, borderColor: "#d4d4d8" }}/>
+                  <Image source={settingsAvatarSource.uri ? { uri: settingsAvatarSource.uri } : avatarPlaceholder} style={{ width: 104, height: 104, borderRadius: 28, borderWidth: 1, borderColor: colors.border }}/>
                 </View>
 
-                <Pressable onPress={saveSettings} style={{ marginTop: 14, backgroundColor: "#b8121c", borderRadius: 999, paddingVertical: 13 }}>
-                  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800", fontSize: 18 }}>Save Profile</Text>
-                </Pressable>
+                <GradientButton onPress={saveSettings} colors={colors} theme={theme} title="Save profile" style={{ marginTop: 14 }}/>
 
-                <Pressable onPress={toggleTheme} style={{ marginTop: 10, borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 999, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>
+                <Pressable onPress={toggleTheme} style={[styles.ghostBtn, { marginTop: 10, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                  <Text style={[styles.ghostBtnText, { color: colors.text }]}> 
                     {theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
                   </Text>
                 </Pressable>
@@ -657,31 +677,30 @@ export function ProfileScreen({ shared }) {
       </Modal>
 
       <Modal visible={!!selectedCollection} transparent animationType="slide" onRequestClose={() => setSelectedCollection(null)}>
-        <View style={sheetBackdropStyle}>
+        <View style={[sheetBackdropStyle, { backgroundColor: colors.modalBackdrop }]}>
           <Pressable onPress={() => setSelectedCollection(null)} style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" }}/>
           <View style={{ ...sheetCardStyle, backgroundColor: colors.panel, borderColor: colors.border }}>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
             {selectedCollection ? (<>
-                <Text style={{ color: colors.text, fontSize: 28, fontWeight: "800" }}>{selectedCollection.title}</Text>
-                <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 20 }}>{selectedCollection.description}</Text>
+                <View style={[styles.modalHandle, { backgroundColor: colors.border }]}/>
+                <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 28, lineHeight: 28 }]}>{selectedCollection.title}</Text>
+                <Text style={[styles.bodyText, { color: colors.muted, marginTop: 8 }]}>{selectedCollection.description}</Text>
 
-                <Pressable onPress={() => openCreateLighter(selectedCollection)} style={{ marginTop: 14, borderRadius: 999, backgroundColor: colors.primary, paddingVertical: 13 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "900" }}>Create Item In This Collection</Text>
-                </Pressable>
+                <GradientButton onPress={() => openCreateLighter(selectedCollection)} colors={colors} theme={theme} title="Create item in this collection" style={{ marginTop: 14 }}/>
 
-                <Text style={{ color: colors.text, fontSize: 20, fontWeight: "800", marginTop: 18 }}>Items</Text>
-                {selectedCollectionItems.length === 0 ? (<View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 16, marginTop: 10 }}>
-                    <Text style={{ color: colors.muted, textAlign: "center" }}>No items in this collection yet.</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 24, lineHeight: 24, marginTop: 18 }]}>Items</Text>
+                {selectedCollectionItems.length === 0 ? (<View style={[styles.formCard, { borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 16, marginTop: 10 }]}>
+                    <Text style={[styles.bodyText, { color: colors.muted, textAlign: "center" }]}>No items in this collection yet.</Text>
                   </View>) : null}
 
-                {selectedCollectionItems.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 12, flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+                {selectedCollectionItems.map((lighter) => (<View key={lighter.id} style={[styles.listRow, { borderColor: colors.border, backgroundColor: colors.panelSoft, marginTop: 10 }]}>
                     <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                      <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
+                      <Image source={{ uri: lighter.image }} style={{ width: 64, height: 64, borderRadius: 18, marginRight: 12 }}/>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.text, fontSize: 18, fontWeight: "800" }} numberOfLines={1}>
+                        <Text style={[styles.cardTitle, { color: colors.text, fontSize: 18, lineHeight: 18 }]} numberOfLines={1}>
                           {lighter.name}
                         </Text>
-                        <Text style={{ color: colors.muted }} numberOfLines={1}>
+                        <Text style={[styles.bodyText, { color: colors.muted }]} numberOfLines={1}>
                           {lighter.brand} • {lighter.year}
                         </Text>
                       </View>
@@ -700,7 +719,7 @@ export function ProfileScreen({ shared }) {
                   </View>))}
 
                 <Pressable onPress={() => setSelectedCollection(null)} style={{ marginTop: 16 }}>
-                  <Text style={{ textAlign: "center", color: colors.muted }}>Close</Text>
+                  <Text style={[styles.metaText, { textAlign: "center", color: colors.muted }]}>Close</Text>
                 </Pressable>
               </>) : null}
             </ScrollView>
@@ -709,50 +728,50 @@ export function ProfileScreen({ shared }) {
       </Modal>
 
       <Modal visible={!!editingUser && !!userForm} transparent animationType="slide" onRequestClose={() => setEditingUser(null)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
-          <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
-            <Text style={{ color: colors.text, fontSize: 24, fontWeight: "800" }}>Edit User</Text>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.modalBackdrop }}>
+          <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]}/>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 24, lineHeight: 24 }]}>Edit User</Text>
             {userForm ? (<>
                 {[
                 ["name", "Name"],
                 ["email", "Email"],
                 ["password", "Password"],
             ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
-                    <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
                     <TextInput value={userForm[field]} onChangeText={(value) => {
                     setUserForm((prev) => (prev ? { ...prev, [field]: value } : prev));
                     setUserErrors((prev) => ({ ...prev, [field]: "" }));
-                }} secureTextEntry={field === "password"} autoCapitalize={field === "email" ? "none" : "sentences"} style={{ color: colors.text, borderColor: userErrors[field] ? "#ef4444" : colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}/>
-                    {userErrors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{userErrors[field]}</Text> : null}
+                }} secureTextEntry={field === "password"} autoCapitalize={field === "email" ? "none" : "sentences"} style={{ color: colors.text, borderColor: userErrors[field] ? colors.destructive : colors.border, borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.panelSoft }}/>
+                    {userErrors[field] ? <Text style={[styles.inputError, { color: colors.destructive }]}>{userErrors[field]}</Text> : null}
                   </View>))}
 
-                <Text style={{ color: colors.muted, marginTop: 10, marginBottom: 4 }}>Role</Text>
+                <Text style={[styles.inputLabel, { color: colors.muted, marginTop: 10, marginBottom: 4 }]}>Role</Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
-                  {["guest", "user", "admin"].map((candidateRole) => (<Pressable key={candidateRole} onPress={() => setUserForm((prev) => (prev ? { ...prev, role: candidateRole } : prev))} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, backgroundColor: userForm.role === candidateRole ? colors.primary : "transparent" }}>
-                      <Text style={{ textAlign: "center", color: userForm.role === candidateRole ? "#111" : colors.text }}>
+                  {["guest", "user", "admin"].map((candidateRole) => (<Pressable key={candidateRole} onPress={() => setUserForm((prev) => (prev ? { ...prev, role: candidateRole } : prev))} style={{ flex: 1, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, backgroundColor: userForm.role === candidateRole ? colors.elevated : colors.panelSoft }}>
+                      <Text style={[styles.ghostBtnText, { textAlign: "center", color: colors.text, fontSize: 13 }]}>
                         {candidateRole}
                       </Text>
                     </Pressable>))}
                 </View>
 
-                <Pressable onPress={saveUser} style={{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>Save User</Text>
-                </Pressable>
-                <Pressable onPress={() => setEditingUser(null)} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Cancel</Text>
+                <GradientButton onPress={saveUser} colors={colors} theme={theme} title="Save user" style={{ marginTop: 12 }}/>
+                <Pressable onPress={() => setEditingUser(null)} style={[styles.ghostBtn, { marginTop: 8, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                  <Text style={[styles.ghostBtnText, { color: colors.text }]}>Cancel</Text>
                 </Pressable>
               </>) : null}
           </ScrollView>
         </View>
       </Modal>
 
-      <DetailModal item={selectedLighter} onClose={() => setSelectedLighter(null)} colors={colors}/>
+      <DetailModal item={selectedLighter} onClose={() => setSelectedLighter(null)} colors={colors} theme={theme}/>
 
       <Modal visible={!!lighterForm} transparent animationType="slide" onRequestClose={closeLighterEditor}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
-          <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
-            <Text style={{ color: colors.text, fontSize: 24, fontWeight: "800" }}>{editingLighter ? "Edit Product" : "Add Product"}</Text>
-            {editorCollection ? <Text style={{ color: colors.muted, marginTop: 4 }}>Collection: {editorCollection.title}</Text> : null}
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.modalBackdrop }}>
+          <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]}/>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 24, lineHeight: 24 }]}>{editingLighter ? "Edit Product" : "Add Product"}</Text>
+            {editorCollection ? <Text style={[styles.bodyText, { color: colors.muted, marginTop: 4 }]}>Collection: {editorCollection.title}</Text> : null}
             {lighterForm ? (<>
                 {[
                 ["name", "Name"],
@@ -764,12 +783,12 @@ export function ProfileScreen({ shared }) {
                 ["image", "Image URL"],
                 ["description", "Description"],
             ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
-                    <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.muted }]}>{label}</Text>
                     <TextInput value={lighterForm[field]} onChangeText={(value) => {
                     setLighterForm((prev) => (prev ? { ...prev, [field]: value } : prev));
                     setLighterErrors((prev) => ({ ...prev, [field]: "" }));
-                }} multiline={field === "description"} style={{ color: colors.text, borderColor: lighterErrors[field] ? "#ef4444" : colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, minHeight: field === "description" ? 90 : undefined, textAlignVertical: field === "description" ? "top" : "center" }}/>
-                    {lighterErrors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors[field]}</Text> : null}
+                }} multiline={field === "description"} style={{ color: colors.text, borderColor: lighterErrors[field] ? colors.destructive : colors.border, borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, minHeight: field === "description" ? 90 : undefined, textAlignVertical: field === "description" ? "top" : "center", backgroundColor: colors.panelSoft }}/>
+                    {lighterErrors[field] ? <Text style={[styles.inputError, { color: colors.destructive }]}>{lighterErrors[field]}</Text> : null}
                   </View>))}
 
                 <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
@@ -785,11 +804,9 @@ export function ProfileScreen({ shared }) {
                   </Pressable>
                 </View>
 
-                <Pressable onPress={saveLighter} style={{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>Save Product</Text>
-                </Pressable>
-                <Pressable onPress={closeLighterEditor} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Cancel</Text>
+                <GradientButton onPress={saveLighter} colors={colors} theme={theme} title="Save product" style={{ marginTop: 12 }}/>
+                <Pressable onPress={closeLighterEditor} style={[styles.ghostBtn, { marginTop: 8, borderColor: colors.border, backgroundColor: colors.panelSoft }]}> 
+                  <Text style={[styles.ghostBtnText, { color: colors.text }]}>Cancel</Text>
                 </Pressable>
               </>) : null}
           </ScrollView>

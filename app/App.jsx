@@ -1,5 +1,8 @@
+import { SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
+import { Syne_600SemiBold, Syne_700Bold } from "@expo-google-fonts/syne";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
+import { useFonts } from "expo-font";
 import { Compass, Flame, Library, Plus, User } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
@@ -7,6 +10,7 @@ import { API_BASE_URL, apiRequest, unwrapApiData } from "./api/client";
 import { mapApiCollectionToAppCollection, mapApiItemToLighter, mapApiUserToAppUser } from "./api/mappers";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { loadLocalAvatarMap } from "./native/avatarStorage";
+import { fontFamilies } from "./native/brand";
 import { palette } from "./native/palette";
 import { AuthScreen } from "./native/screens/AuthScreen";
 import { ExploreScreen } from "./native/screens/ExploreScreen";
@@ -62,6 +66,13 @@ function mergeUsersPreservingSessionFields(nextUsers, previousUsers, sessionUser
 }
 
 function AppShell() {
+    const [fontsLoaded] = useFonts({
+        Syne_600SemiBold,
+        Syne_700Bold,
+        SpaceGrotesk_400Regular,
+        SpaceGrotesk_500Medium,
+        SpaceGrotesk_700Bold,
+    });
     const { theme, toggleTheme } = useTheme();
     const colors = theme === "light" ? palette.light : palette.dark;
     const [users, setUsers] = useState([]);
@@ -228,6 +239,11 @@ function AppShell() {
         refreshAppData,
         logout,
     };
+        if (!fontsLoaded) {
+                return (<View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", gap: 12 }}>
+                <ActivityIndicator size="large" color={colors.primary}/>
+            </View>);
+        }
     let content;
     if (isLoading) {
         content = <SplashScreen colors={colors}/>;
@@ -301,15 +317,15 @@ function AppShell() {
                 backgroundColor: colors.panel,
                 borderTopColor: colors.border,
                 borderTopWidth: 1,
-                height: 74,
-                paddingBottom: 10,
+                height: 78,
+                paddingBottom: 12,
                 paddingTop: 10,
             },
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.muted,
             tabBarLabelStyle: {
-                fontWeight: "800",
-                letterSpacing: 0.4,
+                fontFamily: fontFamilies.bodyBold,
+                letterSpacing: 0.8,
                 textTransform: "uppercase",
                 fontSize: 10,
             },
