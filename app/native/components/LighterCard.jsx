@@ -1,9 +1,9 @@
-import { Eye, EyeOff, Plus } from "lucide-react-native";
+import { Eye, EyeOff } from "lucide-react-native";
 import { Image, Pressable, Text, View } from "react-native";
 import { palette } from "../palette";
 import { styles } from "../styles";
 
-export function LighterCard({ lighter, onView, onCompare, colors }) {
+export function LighterCard({ lighter, onView, colors }) {
     const isPrivate = lighter.visibility === "private";
     return (
     <Pressable onPress={() => onView(lighter)} style={[styles.card, { backgroundColor: colors.panel, borderColor: colors.border }]}>
@@ -20,18 +20,15 @@ export function LighterCard({ lighter, onView, onCompare, colors }) {
           {lighter.name}
         </Text>
         <Text style={[styles.cardMeta, { color: colors.accent }]}>
-          {lighter.brand} • {lighter.year}
+          {lighter.period} • {lighter.mechanism}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4, lineHeight: 20 }} numberOfLines={2}>
           {lighter.description}
         </Text>
 
         <View style={styles.rowBetween}>
-          <Pressable onPress={() => onView(lighter)} style={[styles.actionBtn, { backgroundColor: palette.gradient.top }]}>
+          <Pressable onPress={() => onView(lighter)} style={[styles.actionBtn, { flex: 1, backgroundColor: palette.gradient.top }]}>
             <Text style={[styles.actionBtnText, { color: colors.buttonText }]}>Details</Text>
-          </Pressable>
-          <Pressable onPress={() => onCompare(lighter)} style={[styles.iconBtn, { borderColor: colors.border }]}>
-            <Plus size={18} color={colors.text} />
           </Pressable>
         </View>
       </View>

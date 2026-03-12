@@ -18,10 +18,6 @@ function toUserForm(user) {
 }
 function toLighterForm(lighter) {
     return {
-        name: lighter.name,
-        brand: lighter.brand,
-        year: String(lighter.year),
-        country: lighter.country,
         mechanism: lighter.mechanism,
         period: lighter.period,
         image: lighter.image,
@@ -31,22 +27,19 @@ function toLighterForm(lighter) {
 }
 export function ProfileScreen({ shared }) {
     const { role, setRole, users, setUsers, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, } = shared;
-    const [tab, setTab] = useState("collection");
+    const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId), [lighters, currentUserId]);
+    const currentUser = users.find((u) => u.id === currentUserId);
+    const [selectedLighter, setSelectedLighter] = useState(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [settingsForm, setSettingsForm] = useState(null);
     const [settingsErrors, setSettingsErrors] = useState({});
-    const [pickerBusy, setPickerBusy] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [editingLighter, setEditingLighter] = useState(null);
-    const [selectedLighter, setSelectedLighter] = useState(null);
     const [userForm, setUserForm] = useState(null);
-    const [lighterForm, setLighterForm] = useState(null);
     const [userErrors, setUserErrors] = useState({});
+    const [editingLighter, setEditingLighter] = useState(null);
+    const [lighterForm, setLighterForm] = useState(null);
     const [lighterErrors, setLighterErrors] = useState({});
-    const currentUser = users.find((user) => user.id === currentUserId);
-    const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId), [lighters, currentUserId]);
-    const mostWanted = useMemo(() => lighters.filter((lighter) => lighter.ownerId !== currentUserId && lighter.visibility === "public"), [lighters, currentUserId]);
-    const listToRender = tab === "collection" ? myLighters : mostWanted;
+    const [pickerBusy, setPickerBusy] = useState(false);
     const roleText = role === "guest" ? "Guest" : role === "admin" ? "Admin Vault" : "Collector";
     const displayName = currentUser?.name ?? roleText;
     const displayBio = currentUser?.bio?.trim() || "Collector of Vintage and Rare Lighters";
@@ -172,6 +165,31 @@ export function ProfileScreen({ shared }) {
         setUserForm(toUserForm(user));
         setUserErrors({});
     };
+
+    const pickLighterPhoto = async () => {
+        if (!lighterForm || pickerBusy) return;
+        setPickerBusy(true);
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert("Permission needed", "Please allow gallery access to choose a photo.");
+                return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+            });
+            if (!result.canceled && result.assets.length > 0) {
+                setLighterForm((prev) => (prev ? { ...prev, image: result.assets[0].uri } : prev));
+                setLighterErrors((prev) => ({ ...prev, image: "" }));
+            }
+        } finally {
+            setPickerBusy(false);
+        }
+    };
+
     const openLighterEditor = (lighter) => {
         setEditingLighter(lighter);
         setLighterForm(toLighterForm(lighter));
@@ -181,11 +199,8 @@ export function ProfileScreen({ shared }) {
         setEditingLighter(null);
         setLighterForm({
             name: "",
-            brand: "",
-            year: `${new Date().getFullYear()}`,
-            country: "",
-            mechanism: "",
-            period: "",
+            mechanism: "Spark wheel",
+            period: "Vintage (1920-1970)",
             image: "",
             description: "",
             visibility: "private",
@@ -370,7 +385,7 @@ export function ProfileScreen({ shared }) {
           <Text style={{ color: colors.muted, marginTop: 12, lineHeight: 22, alignSelf: "flex-start" }}>{displayBio}</Text>
         </View>
 
-        {/* ── Stats row ─────────────────── */}
+        {/* ── Stat row ─────────────────── */}
         <View style={{ flexDirection: "row", marginBottom: 14 }}>
           <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={{ color: colors.muted, fontSize: 11 }}>Collection</Text>
@@ -384,29 +399,15 @@ export function ProfileScreen({ shared }) {
           </View>
         </View>
 
-        {/* ── Tab toggle ────────────────── */}
-        <View style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgElevated, padding: 3, flexDirection: "row", marginBottom: 16 }}>
-          <Pressable onPress={() => setTab("collection")} style={{ flex: 1, borderRadius: 12, paddingVertical: 12, backgroundColor: tab === "collection" ? colors.panel : "transparent" }}>
-            <Text style={{ textAlign: "center", color: tab === "collection" ? colors.primary : colors.muted, fontSize: 15, fontWeight: "700" }}>
-              My Collection
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => setTab("wanted")} style={{ flex: 1, borderRadius: 12, paddingVertical: 12, backgroundColor: tab === "wanted" ? colors.panel : "transparent" }}>
-            <Text style={{ textAlign: "center", color: tab === "wanted" ? colors.accent : colors.muted, fontSize: 15, fontWeight: "700" }}>
-              Most Wanted
-            </Text>
-          </Pressable>
-        </View>
-
         {/* ── Add lighter CTA ───────────── */}
-        {tab === "collection" && role !== "guest" ? (
+        {role !== "guest" ? (
           <Pressable onPress={openCreateLighter} style={{ marginBottom: 12, borderRadius: 16, backgroundColor: palette.gradient.top, minHeight: 48, justifyContent: "center" }}>
             <Text style={{ textAlign: "center", color: colors.buttonText, fontSize: 16, fontWeight: "700" }}>Add Lighter to My Collection</Text>
           </Pressable>
         ) : null}
 
         {/* ── Empty state ───────────────── */}
-        {listToRender.length === 0 ? (
+        {myLighters.length === 0 ? (
           <View style={[styles.emptyWrap, { backgroundColor: colors.panel, borderColor: colors.border, margin: 0 }]}>
             <Text style={{ color: colors.muted, fontSize: 15, textAlign: "center" }}>
               No lighters found in this section yet.
@@ -415,16 +416,16 @@ export function ProfileScreen({ shared }) {
         ) : null}
 
         {/* ── Lighter list ──────────────── */}
-        {listToRender.map((lighter) => (
+        {myLighters.map((lighter) => (
           <View key={lighter.id} style={[styles.listRow, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}>
               <Image source={{ uri: lighter.image }} style={{ width: 48, height: 48, borderRadius: palette.radius.sm }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontSize: 16, fontWeight: "700" }} numberOfLines={1}>{lighter.name}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>{lighter.brand} • {lighter.year}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{lighter.period} • {lighter.mechanism}</Text>
               </View>
             </Pressable>
-            {tab === "collection" && lighter.ownerId === currentUserId ? (
+            {lighter.ownerId === currentUserId ? (
               <View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
                 <Pressable onPress={() => openLighterEditor(lighter)}>
                   <SquarePen color={colors.text} size={18} />
@@ -487,6 +488,7 @@ export function ProfileScreen({ shared }) {
       {/* ── Settings modal ─────────────── */}
       <Modal visible={isSettingsOpen && !!settingsForm} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
         <View style={styles.modalBackdrop}>
+          <Pressable style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} onPress={() => setIsSettingsOpen(false)} />
           <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={{ color: colors.text, fontSize: 24, fontWeight: "800", marginBottom: 8 }}>Settings</Text>
 
@@ -585,6 +587,7 @@ export function ProfileScreen({ shared }) {
       {/* ── Edit user modal (admin) ────── */}
       <Modal visible={!!editingUser && !!userForm} transparent animationType="slide" onRequestClose={() => setEditingUser(null)}>
         <View style={styles.modalBackdrop}>
+          <Pressable style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} onPress={() => setEditingUser(null)} />
           <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={{ color: colors.text, fontSize: 22, fontWeight: "800" }}>Edit User</Text>
             {userForm ? (
@@ -631,13 +634,13 @@ export function ProfileScreen({ shared }) {
       {/* ── Edit lighter modal ─────────── */}
       <Modal visible={!!lighterForm} transparent animationType="slide" onRequestClose={() => { setEditingLighter(null); setLighterForm(null); }}>
         <View style={styles.modalBackdrop}>
+          <Pressable style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} onPress={() => { setEditingLighter(null); setLighterForm(null); }} />
           <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={{ color: colors.text, fontSize: 22, fontWeight: "800" }}>{editingLighter ? "Edit Product" : "Add Product"}</Text>
             {lighterForm ? (
               <>
                 {[
-                  ["name", "Name"], ["brand", "Brand"], ["year", "Year"], ["country", "Country"],
-                  ["mechanism", "Mechanism"], ["period", "Period"], ["image", "Image URL"], ["description", "Description"],
+                  ["name", "Name"], ["description", "Description"],
                 ].map(([field, label]) => (
                   <View key={field} style={{ marginTop: 10 }}>
                     <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
@@ -654,6 +657,43 @@ export function ProfileScreen({ shared }) {
                     {lighterErrors[field] ? <Text style={{ color: colors.error, marginTop: 4 }}>{lighterErrors[field]}</Text> : null}
                   </View>
                 ))}
+
+                <View style={{ marginTop: 12 }}>
+                    <Text style={{ color: colors.muted, marginBottom: 4 }}>Period</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {["Antique (Pre-1920)", "Vintage (1920-1970)", "Modern (1970+)"].map(opt => (
+                            <Pressable key={opt} onPress={() => setLighterForm(p => p ? { ...p, period: opt } : p)}
+                              style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: lighterForm.period === opt ? palette.gradient.top : "transparent" }}>
+                                <Text style={{ color: lighterForm.period === opt ? colors.buttonText : colors.text }}>{opt}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                </View>
+
+                <View style={{ marginTop: 12 }}>
+                    <Text style={{ color: colors.muted, marginBottom: 4 }}>Mechanism</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {["Spark wheel", "Piezoelectric", "Electric arc", "Friction"].map(opt => (
+                            <Pressable key={opt} onPress={() => setLighterForm(p => p ? { ...p, mechanism: opt } : p)}
+                              style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: lighterForm.mechanism === opt ? palette.gradient.top : "transparent" }}>
+                                <Text style={{ color: lighterForm.mechanism === opt ? colors.buttonText : colors.text }}>{opt}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                </View>
+
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ color: colors.muted, marginBottom: 4 }}>Image</Text>
+                  <Pressable onPress={pickLighterPhoto} style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, minHeight: 48, justifyContent: "center", backgroundColor: colors.bgElevated }}>
+                    <Text style={{ textAlign: "center", color: colors.text, fontWeight: "600" }}>
+                      {lighterForm.image ? "Change Image" : "Select Image from Gallery"}
+                    </Text>
+                  </Pressable>
+                  {lighterForm.image ? (
+                      <Image source={{ uri: lighterForm.image }} style={{ width: "100%", height: 160, borderRadius: 12, marginTop: 8 }} />
+                  ) : null}
+                  {lighterErrors.image ? <Text style={{ color: colors.error, marginTop: 4 }}>{lighterErrors.image}</Text> : null}
+                </View>
 
                 <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
                   {["private", "public"].map((vis) => (

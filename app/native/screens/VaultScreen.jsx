@@ -1,3 +1,4 @@
+import * as ImagePicker from "expo-image-picker";
 import { Plus, Shield, SquarePen, Trash2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
@@ -11,11 +12,8 @@ function toFormState(lighter) {
     if (!lighter) {
         return {
             name: "",
-            brand: "",
-            year: `${new Date().getFullYear()}`,
-            country: "",
-            mechanism: "",
-            period: "",
+            mechanism: "Spark wheel",
+            period: "Vintage (1920-1970)",
             image: "",
             description: "",
             visibility: "private",
@@ -23,9 +21,6 @@ function toFormState(lighter) {
     }
     return {
         name: lighter.name,
-        brand: lighter.brand,
-        year: String(lighter.year),
-        country: lighter.country,
         mechanism: lighter.mechanism,
         period: lighter.period,
         image: lighter.image,
@@ -57,6 +52,32 @@ export function VaultScreen({ shared }) {
         </View>
       </SafeAreaView>);
     }
+    const [pickerBusy, setPickerBusy] = useState(false);
+
+    const pickLighterPhoto = async () => {
+        if (!formOpen || pickerBusy) return;
+        setPickerBusy(true);
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert("Permission needed", "Please allow gallery access to choose a photo.");
+                return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+            });
+            if (!result.canceled && result.assets.length > 0) {
+                setFormData((prev) => ({ ...prev, image: result.assets[0].uri }));
+                setErrors((prev) => ({ ...prev, image: "" }));
+            }
+        } finally {
+            setPickerBusy(false);
+        }
+    };
+
     const openCreateForm = () => {
         setEditing(null);
         setFormData(toFormState());
@@ -193,8 +214,7 @@ export function VaultScreen({ shared }) {
               <Image source={{ uri: item.image }} style={styles.thumb} />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontWeight: "700" }} numberOfLines={1}>{item.name}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>{item.brand} • {item.year}</Text>
-                <Text style={{ color: colors.accent, fontSize: 12 }}>{item.mechanism}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{item.period} • {item.mechanism}</Text>
               </View>
             </Pressable>
             <View style={{ gap: 8 }}>
@@ -213,12 +233,12 @@ export function VaultScreen({ shared }) {
 
       <Modal visible={formOpen} transparent animationType="slide" onRequestClose={() => setFormOpen(false)}>
         <View style={styles.modalBackdrop}>
+          <Pressable style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} onPress={() => setFormOpen(false)} />
           <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{editing ? "Edit Lighter" : "Add Lighter"}</Text>
 
             {[
-              ["name", "Name"], ["brand", "Brand"], ["year", "Year"], ["country", "Country"],
-              ["mechanism", "Mechanism"], ["period", "Period"], ["image", "Image URL"], ["description", "Description"],
+              ["name", "Name"], ["description", "Description"],
             ].map(([field, label]) => (
               <View key={field} style={{ marginTop: 10 }}>
                 <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
@@ -235,6 +255,43 @@ export function VaultScreen({ shared }) {
                 {errors[field] ? <Text style={{ color: colors.error, marginTop: 4 }}>{errors[field]}</Text> : null}
               </View>
             ))}
+
+            <View style={{ marginTop: 12 }}>
+                <Text style={{ color: colors.muted, marginBottom: 4 }}>Period</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {["Antique (Pre-1920)", "Vintage (1920-1970)", "Modern (1970+)"].map(opt => (
+                        <Pressable key={opt} onPress={() => setFormData(p => ({ ...p, period: opt }))}
+                          style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: formData.period === opt ? palette.gradient.top : "transparent" }}>
+                            <Text style={{ color: formData.period === opt ? colors.buttonText : colors.text }}>{opt}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+            </View>
+
+            <View style={{ marginTop: 12 }}>
+                <Text style={{ color: colors.muted, marginBottom: 4 }}>Mechanism</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {["Spark wheel", "Piezoelectric", "Electric arc", "Friction"].map(opt => (
+                        <Pressable key={opt} onPress={() => setFormData(p => ({ ...p, mechanism: opt }))}
+                          style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: formData.mechanism === opt ? palette.gradient.top : "transparent" }}>
+                            <Text style={{ color: formData.mechanism === opt ? colors.buttonText : colors.text }}>{opt}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+            </View>
+
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.muted, marginBottom: 4 }}>Image</Text>
+              <Pressable onPress={pickLighterPhoto} style={{ borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border, minHeight: 48, justifyContent: "center", backgroundColor: colors.bgElevated }}>
+                <Text style={{ textAlign: "center", color: colors.text, fontWeight: "600" }}>
+                  {formData.image ? "Change Image" : "Select Image from Gallery"}
+                </Text>
+              </Pressable>
+              {formData.image ? (
+                  <Image source={{ uri: formData.image }} style={{ width: "100%", height: 160, borderRadius: 12, marginTop: 8 }} />
+              ) : null}
+              {errors.image ? <Text style={{ color: colors.error, marginTop: 4 }}>{errors.image}</Text> : null}
+            </View>
 
             <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
               {["private", "public"].map((vis) => (
