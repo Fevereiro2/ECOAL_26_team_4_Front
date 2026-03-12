@@ -53,11 +53,11 @@ function AppShell() {
         return [];
     }, []);
     const loadUsers = useCallback(async () => {
-        const response = await apiRequest("/users");
+        const response = await apiRequest("/users?per_page=100");
         return normalizeCollection(response).map(mapApiUserToAppUser);
     }, [normalizeCollection]);
     const loadItems = useCallback(async () => {
-        const response = await apiRequest("/items");
+        const response = await apiRequest("/items?per_page=100");
         return normalizeCollection(response).map(mapApiItemToLighter);
     }, [normalizeCollection]);
     const refreshAppData = useCallback(async () => {
@@ -227,10 +227,12 @@ function AppShell() {
             tabBarStyle: {
                 backgroundColor: colors.panel,
                 borderTopColor: colors.border,
+                borderTopWidth: 1,
                 height: 64,
                 paddingBottom: 8,
                 paddingTop: 8,
             },
+            tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.muted,
             tabBarIcon: ({ color, size }) => {

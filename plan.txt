@@ -1,0 +1,28 @@
+Execution Plan (10 steps)
+Rewrite palette.js — Replace all tokens with DA-compliant dark/light values, add gradient colors, button text, shadow tokens
+
+Update styles.js — Fix all radius values (14/22/30), adjust spacings (card padding, input min-height 50px, radius 16px for buttons), modal radius
+
+Fix AuthScreen.jsx — Remove ImageBackground + auth-hero.png, apply warm DA background, fix all hardcoded colors to use colors.*, fix input/button styling per DA form rules (min-height 50px, radius 16px)
+
+Fix SplashScreen.jsx — Replace red blobs with warm amber halos matching DA ambiance
+
+Fix LighterCard.jsx — Update badge colors to warm palette, button gradient, radius adjustments
+
+Fix DetailModal.jsx + CompareModal.jsx — Minor: ensure close button gets gradient, check radius
+
+Fix HomeScreen.jsx + ExploreScreen.jsx — Hero radius to --radius-lg (30), verify spacing. Mostly auto-fixed by palette
+
+Fix ProfileScreen.jsx — Remove red header, replace with warm DA-compliant profile layout. Fix all hardcoded colors (#b8121c, #ececec, #8b5e43, #f8f8f8, etc.) to use colors.*. Fix settings modal
+
+Fix VaultScreen.jsx — Update hardcoded button colors, ensure CTA uses gradient
+
+Fix App.jsx — Update tab bar styling (warm colors, correct sizing)
+
+What stays unchanged
+Component structure and logic (state, API calls, navigation flow)
+Validation logic
+Data mappers and API client
+File organization
+Fonts note
+The DA specifies Syne + Space Grotesk. On React Native these need to be loaded via expo-font. I'll add the font loading setup but since this is mobile-first, system fonts will serve as fallback. This can be refined later.

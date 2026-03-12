@@ -5,41 +5,63 @@ import { CompareModal } from "../components/CompareModal";
 import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
 import { styles } from "../styles";
+
 export function ExploreScreen({ shared }) {
     const { colors, lighters } = shared;
     const [search, setSearch] = useState("");
     const [showOnlyPublic, setShowOnlyPublic] = useState(true);
     const [selected, setSelected] = useState(null);
     const [compare, setCompare] = useState(null);
+
     const filtered = useMemo(() => {
         return lighters.filter((lighter) => {
-            if (showOnlyPublic && lighter.visibility !== "public")
-                return false;
+            if (showOnlyPublic && lighter.visibility !== "public") return false;
             const query = search.toLowerCase().trim();
-            if (!query)
-                return true;
-            return [lighter.name, lighter.brand, lighter.country, lighter.mechanism].some((field) => field.toLowerCase().includes(query));
+            if (!query) return true;
+            return [lighter.name, lighter.brand, lighter.country, lighter.mechanism]
+                .some((field) => field.toLowerCase().includes(query));
         });
     }, [lighters, search, showOnlyPublic]);
-    return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+
+    return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <View style={styles.screenPad}>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>Explore Vault</Text>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>Explore</Text>
         <View style={[styles.searchWrap, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-          <SlidersHorizontal color={colors.muted} size={16}/>
-          <TextInput placeholder="Search by name, brand, country" placeholderTextColor={colors.muted} value={search} onChangeText={setSearch} style={[styles.searchInput, { color: colors.text }]}/>
+          <SlidersHorizontal color={colors.muted} size={16} />
+          <TextInput
+            placeholder="Search by name, brand, country..."
+            placeholderTextColor={colors.muted}
+            value={search}
+            onChangeText={setSearch}
+            style={[styles.searchInput, { color: colors.text }]}
+          />
         </View>
-        <View style={styles.rowBetween}>
-          <Text style={{ color: colors.muted }}>{filtered.length} results</Text>
+        <View style={[styles.rowBetween, { marginTop: 4 }]}>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>{filtered.length} results</Text>
           <View style={styles.switchRow}>
-            <Text style={{ color: colors.muted, marginRight: 8 }}>Public only</Text>
-            <Switch value={showOnlyPublic} onValueChange={setShowOnlyPublic}/>
+            <Text style={{ color: colors.muted, marginRight: 8, fontSize: 13 }}>Public only</Text>
+            <Switch
+              value={showOnlyPublic}
+              onValueChange={setShowOnlyPublic}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor={colors.text}
+            />
           </View>
         </View>
       </View>
 
-      <FlatList data={filtered} keyExtractor={(item) => item.id} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }} renderItem={({ item }) => <LighterCard lighter={item} onView={setSelected} onCompare={setCompare} colors={colors}/>}/>
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
+        renderItem={({ item }) => (
+          <LighterCard lighter={item} onView={setSelected} onCompare={setCompare} colors={colors} />
+        )}
+      />
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors}/>
-      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters}/>
-    </SafeAreaView>);
+      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} />
+      <CompareModal item={compare} onClose={() => setCompare(null)} colors={colors} lighters={lighters} />
+    </SafeAreaView>
+    );
 }

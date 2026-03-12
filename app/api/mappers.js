@@ -22,6 +22,14 @@ export function mapApiUserToAppUser(user) {
         bio: user.bio ?? user.nationality ?? user.collection?.description ?? "",
     };
 }
+function findCriterionScore(criteria, ...names) {
+    const match = criteria.find((c) => {
+        const label = (c.name ?? c.criteria?.name ?? "").toLowerCase();
+        return names.some((n) => label.includes(n));
+    });
+    return match ? (match.pivot?.score ?? match.score) : undefined;
+}
+
 export function mapApiItemToLighter(item) {
     const criteria = item.criteria ?? [];
     const publicStatus = typeof item.status === "boolean" ? item.status : Boolean(item.status ?? true);
@@ -39,10 +47,10 @@ export function mapApiItemToLighter(item) {
         description: item.description?.trim() || "No description provided.",
         visibility: publicStatus ? "public" : "private",
         criteria: {
-            durability: parseScore(criteria[0]?.pivot?.score ?? criteria[0]?.score, 5),
-            value: parseScore(criteria[1]?.pivot?.score ?? criteria[1]?.score, 5),
-            rarity: parseScore(criteria[2]?.pivot?.score ?? criteria[2]?.score, 5),
-            autonomy: parseScore(criteria[3]?.pivot?.score ?? criteria[3]?.score, 5),
+            durability: parseScore(findCriterionScore(criteria, "durability", "durab"), 5),
+            value: parseScore(findCriterionScore(criteria, "price", "value", "prix"), 5),
+            rarity: parseScore(findCriterionScore(criteria, "rarity", "rareté", "rare"), 5),
+            autonomy: parseScore(findCriterionScore(criteria, "autonomy", "autonomie", "auto"), 5),
         },
     };
 }

@@ -44,3 +44,16 @@ export async function apiRequest(path, options = {}) {
     }
     return payload;
 }
+
+export async function ensureCollection(token) {
+    try {
+        await apiRequest("/collections", {
+            method: "POST",
+            token,
+            body: JSON.stringify({ title: "My Collection", description: "" }),
+        });
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 403) return;
+        throw error;
+    }
+}

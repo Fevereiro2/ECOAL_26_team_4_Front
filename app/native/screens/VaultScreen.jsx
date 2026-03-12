@@ -1,9 +1,10 @@
 import { Plus, Shield, SquarePen, Trash2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, } from "react-native";
-import { apiRequest, unwrapApiData } from "../../api/client";
+import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
+import { apiRequest, ensureCollection, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter } from "../../api/mappers";
 import { DetailModal } from "../components/DetailModal";
+import { palette } from "../palette";
 import { styles } from "../styles";
 import { toSafeLighterPatch, validateLighterForm } from "../validation";
 function toFormState(lighter) {
@@ -97,13 +98,28 @@ export function VaultScreen({ shared }) {
                 setLighters((prev) => prev.map((lighter) => (lighter.id === editing.id ? mapped : lighter)));
             }
             else {
-                const created = await apiRequest("/items", {
-                    method: "POST",
-                    token: authToken,
-                    body: JSON.stringify(payload),
-                });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
-                setLighters((prev) => [mapped, ...prev]);
+                try {
+                    const created = await apiRequest("/items", {
+                        method: "POST",
+                        token: authToken,
+                        body: JSON.stringify(payload),
+                    });
+                    const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                    setLighters((prev) => [mapped, ...prev]);
+                } catch (firstError) {
+                    if (firstError instanceof Error && firstError.status === 403) {
+                        await ensureCollection(authToken);
+                        const created = await apiRequest("/items", {
+                            method: "POST",
+                            token: authToken,
+                            body: JSON.stringify(payload),
+                        });
+                        const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                        setLighters((prev) => [mapped, ...prev]);
+                    } else {
+                        throw firstError;
+                    }
+                }
             }
             setFormOpen(false);
             setEditing(null);
@@ -135,7 +151,8 @@ export function VaultScreen({ shared }) {
             Alert.alert("Delete failed", message);
         }
     };
-    return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+    return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <View style={styles.screenPad}>
         <Text style={[styles.screenTitle, { color: colors.text }]}>My Vault</Text>
         <View style={styles.rowBetween}>
@@ -148,114 +165,97 @@ export function VaultScreen({ shared }) {
             <Text style={{ color: colors.accent, fontSize: 20, fontWeight: "700" }}>{avgValue}/10</Text>
           </View>
         </View>
-        <TextInput placeholder="Search your collection" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[
-            styles.singleInput,
-            { color: colors.text, backgroundColor: colors.panel, borderColor: colors.border },
-        ]}/>
+
+        <TextInput
+          placeholder="Search your collection"
+          placeholderTextColor={colors.muted}
+          value={query}
+          onChangeText={setQuery}
+          style={[styles.singleInput, { color: colors.text, backgroundColor: colors.panel, borderColor: colors.border }]}
+        />
+
         <Pressable onPress={openCreateForm} style={{
-            marginTop: 6,
-            borderRadius: 10,
-            backgroundColor: colors.primary,
-            paddingVertical: 10,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
+            marginTop: 6, borderRadius: 16, backgroundColor: palette.gradient.top, minHeight: 48,
+            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
         }}>
-          <Plus color="#111" size={18}/>
-          <Text style={{ color: "#111", fontWeight: "800" }}>Add New Lighter</Text>
+          <Plus color={colors.buttonText} size={18} />
+          <Text style={{ color: colors.buttonText, fontWeight: "800" }}>Add New Lighter</Text>
         </Pressable>
       </View>
 
-      <FlatList data={myLighters} keyExtractor={(item) => item.id} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }} renderItem={({ item }) => (<View style={[styles.listRow, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Pressable onPress={() => setSelected(item)} style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 10 }}>
-              <Image source={{ uri: item.image }} style={styles.thumb}/>
+      <FlatList
+        data={myLighters}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }}
+        renderItem={({ item }) => (
+          <View style={[styles.listRow, { backgroundColor: colors.panel, borderColor: colors.border }]}>
+            <Pressable onPress={() => setSelected(item)} style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 14 }}>
+              <Image source={{ uri: item.image }} style={styles.thumb} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: "700" }} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  {item.brand} • {item.year}
-                </Text>
-                <Text style={{ color: colors.primary, fontSize: 12 }}>{item.mechanism}</Text>
+                <Text style={{ color: colors.text, fontWeight: "700" }} numberOfLines={1}>{item.name}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{item.brand} • {item.year}</Text>
+                <Text style={{ color: colors.accent, fontSize: 12 }}>{item.mechanism}</Text>
               </View>
             </Pressable>
-
             <View style={{ gap: 8 }}>
               <Pressable onPress={() => openEditForm(item)}>
-                <SquarePen color={colors.text} size={18}/>
+                <SquarePen color={colors.text} size={18} />
               </Pressable>
               <Pressable onPress={() => deleteLighter(item.id)}>
-                <Trash2 color="#ef4444" size={18}/>
+                <Trash2 color={colors.error} size={18} />
               </Pressable>
             </View>
-          </View>)}/>
+          </View>
+        )}
+      />
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors}/>
+      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} />
 
       <Modal visible={formOpen} transparent animationType="slide" onRequestClose={() => setFormOpen(false)}>
         <View style={styles.modalBackdrop}>
-          <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}> 
+          <ScrollView style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{editing ? "Edit Lighter" : "Add Lighter"}</Text>
 
             {[
-            ["name", "Name"],
-            ["brand", "Brand"],
-            ["year", "Year"],
-            ["country", "Country"],
-            ["mechanism", "Mechanism"],
-            ["period", "Period"],
-            ["image", "Image URL"],
-            ["description", "Description"],
-        ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
+              ["name", "Name"], ["brand", "Brand"], ["year", "Year"], ["country", "Country"],
+              ["mechanism", "Mechanism"], ["period", "Period"], ["image", "Image URL"], ["description", "Description"],
+            ].map(([field, label]) => (
+              <View key={field} style={{ marginTop: 10 }}>
                 <Text style={{ color: colors.muted, marginBottom: 4 }}>{label}</Text>
-                <TextInput value={formData[field]} onChangeText={(value) => {
-                setFormData((prev) => ({ ...prev, [field]: value }));
-                setErrors((prev) => ({ ...prev, [field]: "" }));
-            }} multiline={field === "description"} style={{
-                color: colors.text,
-                borderColor: errors[field] ? "#ef4444" : colors.border,
-                borderWidth: 1,
-                borderRadius: 10,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                minHeight: field === "description" ? 90 : undefined,
-                textAlignVertical: field === "description" ? "top" : "center",
-            }}/>
-                {errors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors[field]}</Text> : null}
-              </View>))}
+                <TextInput
+                  value={formData[field]}
+                  onChangeText={(v) => { setFormData((p) => ({ ...p, [field]: v })); setErrors((p) => ({ ...p, [field]: "" })); }}
+                  multiline={field === "description"}
+                  style={{
+                    color: colors.text, borderColor: errors[field] ? colors.error : colors.border,
+                    borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, minHeight: 50, backgroundColor: colors.bgElevated,
+                    ...(field === "description" ? { minHeight: 90, textAlignVertical: "top" } : {}),
+                  }}
+                />
+                {errors[field] ? <Text style={{ color: colors.error, marginTop: 4 }}>{errors[field]}</Text> : null}
+              </View>
+            ))}
 
             <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
-              <Pressable onPress={() => setFormData((prev) => ({ ...prev, visibility: "private" }))} style={{
-            flex: 1,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: formData.visibility === "private" ? colors.primary : "transparent",
-            paddingVertical: 10,
-        }}>
-                <Text style={{ textAlign: "center", color: formData.visibility === "private" ? "#111" : colors.text }}>Private</Text>
-              </Pressable>
-              <Pressable onPress={() => setFormData((prev) => ({ ...prev, visibility: "public" }))} style={{
-            flex: 1,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: formData.visibility === "public" ? colors.primary : "transparent",
-            paddingVertical: 10,
-        }}>
-                <Text style={{ textAlign: "center", color: formData.visibility === "public" ? "#111" : colors.text }}>Public</Text>
-              </Pressable>
+              {["private", "public"].map((vis) => (
+                <Pressable key={vis} onPress={() => setFormData((p) => ({ ...p, visibility: vis }))} style={{
+                  flex: 1, borderRadius: palette.radius.sm, borderWidth: 1, borderColor: colors.border,
+                  backgroundColor: formData.visibility === vis ? palette.gradient.top : "transparent", paddingVertical: 10,
+                }}>
+                  <Text style={{ textAlign: "center", color: formData.visibility === vis ? colors.buttonText : colors.text, textTransform: "capitalize" }}>{vis}</Text>
+                </Pressable>
+              ))}
             </View>
 
-            <Pressable onPress={saveForm} style={[styles.closeBtn, { backgroundColor: colors.primary }]}> 
-              <Text style={styles.actionBtnText}>{editing ? "Save Changes" : "Create Lighter"}</Text>
+            <Pressable onPress={saveForm} style={[styles.closeBtn, { backgroundColor: palette.gradient.top }]}>
+              <Text style={[styles.actionBtnText, { color: colors.buttonText }]}>{editing ? "Save Changes" : "Create Lighter"}</Text>
             </Pressable>
-            <Pressable onPress={() => setFormOpen(false)} style={[styles.closeBtn, { backgroundColor: colors.border }]}> 
+            <Pressable onPress={() => setFormOpen(false)} style={[styles.closeBtn, { backgroundColor: colors.bgElevated }]}>
               <Text style={{ color: colors.text, fontWeight: "700" }}>Cancel</Text>
             </Pressable>
           </ScrollView>
         </View>
       </Modal>
-    </SafeAreaView>);
+    </SafeAreaView>
+    );
 }
