@@ -2,7 +2,7 @@ import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { palette } from "../palette";
 import { styles } from "../styles";
 
-export function DetailModal({ item, onClose, colors }) {
+export function DetailModal({ item, onClose, colors, user, onViewUser }) {
     if (!item) return null;
 
     const criteria = [
@@ -22,6 +22,16 @@ export function DetailModal({ item, onClose, colors }) {
           <Text style={[styles.cardMeta, { color: colors.accent }]}>{item.period}</Text>
           <Text style={{ color: colors.muted, marginTop: 6 }}>{item.mechanism}</Text>
           <Text style={{ color: colors.text, marginTop: 12, lineHeight: 22 }}>{item.description}</Text>
+
+          {user ? (
+            <Pressable onPress={() => onViewUser && onViewUser(user)} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 16, backgroundColor: colors.bgElevated, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
+              <Image source={user.avatar?.trim() ? { uri: user.avatar } : require("../../../assets/images/prototypes/profile/posts.png")} style={{ width: 40, height: 40, borderRadius: 20 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: "700" }}>{user.name}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>View Profile</Text>
+              </View>
+            </Pressable>
+          ) : null}
 
           <View style={{ marginTop: 14, gap: 6 }}>
             {criteria.map((c) => (

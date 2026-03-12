@@ -8,6 +8,8 @@ import { DetailModal } from "../components/DetailModal";
 import { palette } from "../palette";
 import { styles } from "../styles";
 import { requiredText, toSafeLighterPatch, validateEmail, validateLighterForm, validatePassword } from "../validation";
+import { PublicProfileModal } from "../components/PublicProfileModal";
+
 function toUserForm(user) {
     return {
         name: user.name,
@@ -30,6 +32,7 @@ export function ProfileScreen({ shared }) {
     const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId), [lighters, currentUserId]);
     const currentUser = users.find((u) => u.id === currentUserId);
     const [selectedLighter, setSelectedLighter] = useState(null);
+    const [viewingUser, setViewingUser] = useState(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [settingsForm, setSettingsForm] = useState(null);
     const [settingsErrors, setSettingsErrors] = useState({});
@@ -268,22 +271,47 @@ export function ProfileScreen({ shared }) {
             return;
         }
         const patch = toSafeLighterPatch(lighterForm);
-        const payload = {
-            title: patch.name,
-            description: patch.description,
-            image_url: patch.image,
-            status: patch.visibility === "public",
-            category1_id: 1,
-            category2_id: null,
-        };
+        const isLocalImage = patch.image && (patch.image.startsWith("blob:") || patch.image.startsWith("file://"));
+        
+        let bodyPayload;
+        if (isLocalImage) {
+            bodyPayload = new FormData();
+            bodyPayload.append("title", patch.name);
+            bodyPayload.append("description", patch.description);
+            bodyPayload.append("status", patch.visibility === "public" ? 1 : 0);
+            bodyPayload.append("category1_id", 1); // Mocked for now
+
+            // Fetch the blob to append as a file
+            const imgRes = await fetch(patch.image);
+            const imgBlob = await imgRes.blob();
+            // Use a dummy filename, Laravel will rename it anyway
+            bodyPayload.append("image", imgBlob, "upload.jpg"); 
+            
+            // To emulate PUT with FormData in Laravel, we need to POST and send _method=PUT
+            if (editingLighter) {
+                bodyPayload.append("_method", "PUT");
+            }
+        } else {
+            bodyPayload = JSON.stringify({
+                title: patch.name,
+                description: patch.description,
+                image_url: patch.image,
+                status: patch.visibility === "public",
+                category1_id: 1,
+                category2_id: null,
+            });
+        }
+
         try {
+            const { image: temporaryImage, ...safePatch } = patch;
+            
             if (editingLighter) {
                 const updated = await apiRequest(`/items/${editingLighter.id}`, {
-                    method: "PUT",
+                    method: isLocalImage ? "POST" : "PUT", // Laravel requires POST with _method=PUT for FormData
                     token: authToken,
-                    body: JSON.stringify(payload),
+                    body: bodyPayload,
                 });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(updated)), ownerId: editingLighter.ownerId, ...patch };
+                const mapped = { ...mapApiItemToLighter(unwrapApiData(updated)), ownerId: editingLighter.ownerId, ...safePatch };
                 setLighters((prev) => prev.map((lighter) => (lighter.id === editingLighter.id ? mapped : lighter)));
             }
             else {
@@ -291,9 +319,9 @@ export function ProfileScreen({ shared }) {
                     const created = await apiRequest("/items", {
                         method: "POST",
                         token: authToken,
-                        body: JSON.stringify(payload),
+                        body: bodyPayload,
                     });
-                    const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                    const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...safePatch };
                     setLighters((prev) => [mapped, ...prev]);
                 } catch (firstError) {
                     if (firstError instanceof Error && firstError.status === 403) {
@@ -301,9 +329,9 @@ export function ProfileScreen({ shared }) {
                         const created = await apiRequest("/items", {
                             method: "POST",
                             token: authToken,
-                            body: JSON.stringify(payload),
+                            body: bodyPayload,
                         });
-                        const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                        const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...safePatch };
                         setLighters((prev) => [mapped, ...prev]);
                     } else {
                         throw firstError;
@@ -629,7 +657,22 @@ export function ProfileScreen({ shared }) {
         </View>
       </Modal>
 
-      <DetailModal item={selectedLighter} onClose={() => setSelectedLighter(null)} colors={colors} />
+      <DetailModal 
+        item={selectedLighter} 
+        onClose={() => setSelectedLighter(null)} 
+        colors={colors} 
+        user={selectedLighter ? users.find((u) => u.id === selectedLighter.ownerId) : null}
+        onViewUser={(user) => {
+            setSelectedLighter(null);
+            setViewingUser(user);
+        }}
+      />
+      <PublicProfileModal
+        user={viewingUser}
+        lighters={lighters}
+        onClose={() => setViewingUser(null)}
+        colors={colors}
+      />
 
       {/* ── Edit lighter modal ─────────── */}
       <Modal visible={!!lighterForm} transparent animationType="slide" onRequestClose={() => { setEditingLighter(null); setLighterForm(null); }}>

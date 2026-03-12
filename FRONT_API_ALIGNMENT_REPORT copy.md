@@ -136,3 +136,21 @@ Result: frontend can update local state directly from create/update responses wi
 - categoryLabel = category.name ?? category.title ?? 'Unknown'
 
 This strategy is enough to keep old code resilient while converging to strict API shape later.
+
+## 8) Item image upload support
+
+The API now supports three image input modes on POST /api/v1/items and PUT/PATCH /api/v1/items/{id}:
+
+- image_url
+  - Use this if frontend already has a remote URL.
+- image
+  - Send a real file with multipart/form-data.
+  - Field name: image
+- image_base64
+  - Send a base64 string or a data URI.
+
+When image or image_base64 is used, Laravel stores the file in storage/app/public/items and returns a final public URL in image_url, for example:
+
+- http://127.0.0.1:8000/storage/items/example.png
+
+Recommended frontend choice: use FormData with image for Expo Web when a user selects a local file.

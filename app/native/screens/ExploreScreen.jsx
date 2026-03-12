@@ -5,12 +5,14 @@ import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
 import { palette } from "../palette";
 import { styles } from "../styles";
+import { PublicProfileModal } from "../components/PublicProfileModal";
 
 export function ExploreScreen({ shared }) {
     const { colors, lighters, role } = shared;
     const [search, setSearch] = useState("");
     const [showOnlyPublic, setShowOnlyPublic] = useState(true);
     const [selected, setSelected] = useState(null);
+    const [selectedUser, setSelectedUser] = useState(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState("");
     const [filterMechanism, setFilterMechanism] = useState("");
@@ -70,7 +72,23 @@ export function ExploreScreen({ shared }) {
         )}
       />
 
-      <DetailModal item={selected} onClose={() => setSelected(null)} colors={colors} />
+      <DetailModal 
+        item={selected} 
+        onClose={() => setSelected(null)} 
+        colors={colors} 
+        user={selected ? shared.users?.find((u) => u.id === selected.ownerId) : null}
+        onViewUser={(user) => {
+            setSelected(null);
+            setSelectedUser(user);
+        }}
+      />
+      
+      <PublicProfileModal
+        user={selectedUser}
+        lighters={shared.lighters}
+        onClose={() => setSelectedUser(null)}
+        colors={colors}
+      />
       
       <Modal visible={isFilterOpen} transparent animationType="slide" onRequestClose={() => setIsFilterOpen(false)}>
         <View style={styles.modalBackdrop}>

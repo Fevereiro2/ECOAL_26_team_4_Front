@@ -27,18 +27,24 @@ function getErrorMessage(payload, fallback) {
 }
 export async function apiRequest(path, options = {}) {
     const { token, headers, body, ...rest } = options;
+    const isFormData = body instanceof FormData;
     const response = await fetch(`${API_BASE_URL}${path}`, {
         ...rest,
         headers: {
             Accept: "application/json",
-            ...(body ? { "Content-Type": "application/json" } : {}),
+            ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...headers,
         },
         body,
     });
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : null;
+    let payload = null;
+    try {
+        payload = text ? JSON.parse(text) : null;
+    } catch {
+        // Not JSON
+    }
     if (!response.ok) {
         throw new ApiError(getErrorMessage(payload, "Request failed."), response.status, payload);
     }
