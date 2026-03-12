@@ -21,6 +21,20 @@ export function validatePassword(password) {
 export function requiredText(value, label) {
     return value.trim() ? null : `${label} is required.`;
 }
+export function validateAvatarUrl(value) {
+    const trimmed = value.trim();
+    if (!trimmed)
+        return null;
+    if (trimmed.length > 255)
+        return "Avatar URL must be 255 characters or fewer.";
+    if (/^(file|content|ph|asset-library):/i.test(trimmed)) {
+        return "Local device images are not supported yet. Use a hosted image URL.";
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+        return "Use a valid avatar URL starting with http:// or https://.";
+    }
+    return null;
+}
 export function validateYear(value) {
     if (!value.trim())
         return "Year is required.";
