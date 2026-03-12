@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, ImageBackground, Modal, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Animated, Easing, Image, Modal, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { requiredText, validateEmail, validatePassword } from "../validation";
 export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, onContinueGuest, onQuickLogin, }) {
     const [mode, setMode] = useState("login");
@@ -15,8 +15,21 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
     const [formError, setFormError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const sheetAnim = useRef(new Animated.Value(0)).current;
+    const lighterFloat = useRef(new Animated.Value(0)).current;
+    const glowPulse = useRef(new Animated.Value(0)).current;
+    const frameBurn = useRef(new Animated.Value(0)).current;
+    const { width, height } = useWindowDimensions();
     const isLogin = mode === "login";
     const submitLabel = isLogin ? "Login" : "Register";
+    const compact = height < 780;
+    const heroSize = Math.min(width * 0.68, compact ? 230 : 290);
+    const lighterSize = heroSize * 1.50;
+    const subtitleSize = width < 390 ? 28 : 34;
+    const switchMode = (nextMode) => {
+        setMode(nextMode);
+        setErrors({});
+        setFormError(null);
+    };
     useEffect(() => {
         if (isPopupOpen) {
             setIsModalMounted(true);
@@ -39,10 +52,60 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
             }
         });
     }, [isPopupOpen, sheetAnim]);
+    useEffect(() => {
+        const floatLoop = Animated.loop(Animated.sequence([
+            Animated.timing(lighterFloat, {
+                toValue: 1,
+                duration: 2800,
+                easing: Easing.inOut(Easing.sin),
+                useNativeDriver: true,
+            }),
+            Animated.timing(lighterFloat, {
+                toValue: 0,
+                duration: 2800,
+                easing: Easing.inOut(Easing.sin),
+                useNativeDriver: true,
+            }),
+        ]));
+        const glowLoop = Animated.loop(Animated.sequence([
+            Animated.timing(glowPulse, {
+                toValue: 1,
+                duration: 2200,
+                easing: Easing.inOut(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(glowPulse, {
+                toValue: 0,
+                duration: 2200,
+                easing: Easing.inOut(Easing.quad),
+                useNativeDriver: true,
+            }),
+        ]));
+        const burnLoop = Animated.loop(Animated.sequence([
+            Animated.timing(frameBurn, {
+                toValue: 1,
+                duration: 900,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.timing(frameBurn, {
+                toValue: 0,
+                duration: 760,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+            }),
+        ]));
+        floatLoop.start();
+        glowLoop.start();
+        burnLoop.start();
+        return () => {
+            floatLoop.stop();
+            glowLoop.stop();
+            burnLoop.stop();
+        };
+    }, [frameBurn, glowPulse, lighterFloat]);
     const openPopup = (nextMode) => {
-        setMode(nextMode);
-        setErrors({});
-        setFormError(null);
+        switchMode(nextMode);
         setIsPopupOpen(true);
     };
     const closePopup = () => {
@@ -86,41 +149,130 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
             setIsSubmitting(false);
         }
     };
-    return (<SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ImageBackground source={require("../../../assets/images/prototypes/auth-hero.png")} style={{ flex: 1 }} imageStyle={{ resizeMode: "cover" }}>
-        <View style={{ flex: 1, backgroundColor: "rgba(245,245,245,0.84)" }}>
-          <View style={{ paddingHorizontal: 28, paddingTop: 84 }}>
-            <Text style={{ color: "#09090b", fontSize: 56, fontWeight: "900", lineHeight: 60 }}>Light It</Text>
-            <Text style={{ color: "#3f3f46", fontSize: 38, fontWeight: "500", lineHeight: 40, marginTop: 12 }}>
-              Bring the light to
-            </Text>
-            <Text style={{ color: "#3f3f46", fontSize: 38, fontWeight: "500", lineHeight: 40 }}>your collection</Text>
-          </View>
+    return (<SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
+        <View style={{ flex: 1 }}>
 
-          <View style={{ flex: 1 }}/>
+          <View style={{ position: "absolute", inset: 0,  }}/>
+          <View style={{ position: "absolute", inset: 0,  }}/>
+          <View style={{
+            position: "absolute",
+            top: -120,
+            left: -90,
+            width: 260,
+            height: 260,
+            borderRadius: 999,
+            backgroundColor: "rgba(127,29,29,0.34)",
+        }}/>
+          <View style={{
+            position: "absolute",
+            bottom: 120,
+            right: -110,
+            width: 300,
+            height: 300,
+            borderRadius: 999,
+            backgroundColor: "rgba(249,115,22,0.12)",
+        }}/>
+          <Animated.View style={{
+            position: "absolute",
+            top: compact ? 8 : 12,
+            left: compact ? 6 : 10,
+            right: compact ? 6 : 10,
+            bottom: compact ? 8 : 12,
+            
+            
+            opacity: frameBurn.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.16, 0.42],
+            }),
+        }}/>
+          <Animated.View style={{
+            position: "absolute",
+            right: -40,
+            top: 92,
+            width: 230,
+            height: 230,
+            borderRadius: 999,
+            backgroundColor: "rgba(255,170,64,0.18)",
+            opacity: glowPulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.45, 0.9],
+            }),
+            transform: [
+                {
+                    scale: glowPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1.12],
+                    }),
+                },
+            ],
+        }}/>
 
-          <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
-            <View style={{ flexDirection: "row", gap: 18 }}>
-              <Pressable onPress={() => openPopup("login")} style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 14 }}>
-                <Text style={{ textAlign: "center", color: "#fff", fontSize: 19, fontWeight: "800" }}>Login</Text>
-              </Pressable>
-              <Pressable onPress={() => openPopup("register")} style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 14 }}>
-                <Text style={{ textAlign: "center", color: "#fff", fontSize: 19, fontWeight: "800" }}>Register</Text>
-              </Pressable>
+          <View style={{ paddingHorizontal: 24, paddingTop: compact ? 44 : 72 }}>
+            <View style={{
+            alignSelf: "flex-start",
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.18)",
+            backgroundColor: "rgba(255,255,255,0.08)",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+        }}>
+              <Text style={{ color: "#000000", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 }}>COLLECTOR VAULT</Text>
             </View>
 
-            <Pressable onPress={onContinueGuest} style={{ marginTop: 12 }}>
-              <Text style={{ textAlign: "center", color: "#52525b", fontSize: 14 }}>Continue as Guest</Text>
+            
+            <Text style={{ color: "#0a0a0a", fontSize: subtitleSize, fontWeight: "600", lineHeight: subtitleSize + 4, marginTop: 10, maxWidth: "82%" }}>
+              Ignite the story behind every piece
+            </Text>
+            <Text style={{ color: "rgba(0, 0, 0, 0.78)", fontSize: 15, lineHeight: 22, marginTop: 14, maxWidth: compact ? "88%" : "74%" }}>
+              Track rare lighters, shape your collection, and compare standout finds in one premium mobile vault.
+            </Text>
+          </View>
+
+<View style={{ alignItems: "center", marginTop: compact ? 19 : 24 }}>
+  
+    <Image
+      source={require("../../../assets/images/prototypes/profile/Logo.png")}
+      style={{
+        margintop: "40vh",
+        width: lighterSize,
+        height: lighterSize,
+        resizeMode: "contain",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 25 },
+        shadowOpacity: 0.3,
+        shadowRadius: 26,
+      }}
+    />
+
+</View>
+
+          <View style={{ flex: compact ? 0.6 : 1 }}/>
+
+          <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
+ 
+
+            <Pressable onPress={() => openPopup("login")} style={{
+            backgroundColor: "#f97316",
+            borderRadius: 999,
+            paddingVertical: 15,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.18,
+            shadowRadius: 18,
+        }}>
+              <Text style={{ textAlign: "center", color: "#fff", fontSize: 18, fontWeight: "900" }}>Open login</Text>
             </Pressable>
+
+
           </View>
         </View>
-      </ImageBackground>
 
       <Modal visible={isModalMounted} transparent animationType="none" onRequestClose={closePopup}>
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <Animated.View style={{
             ...StyleSheet.absoluteFillObject,
-            backgroundColor: "rgba(17,24,39,0.38)",
+            backgroundColor: colors.bg,
             opacity: sheetAnim,
         }}/>
 
@@ -139,11 +291,11 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
                 inputRange: [0, 1],
                 outputRange: [0.6, 1],
             }),
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            backgroundColor: "#f4f4f5",
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
             borderWidth: 1,
-            borderColor: "#e5e7eb",
+            borderColor: "rgba(255,184,108,0.2)",
             paddingHorizontal: 24,
             paddingTop: 24,
             paddingBottom: 20,
@@ -151,52 +303,87 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
             maxHeight: "78%",
         }}>
             <View style={{ alignItems: "center", marginBottom: 10 }}>
-              <View style={{ width: 52, height: 5, borderRadius: 999, backgroundColor: "#d4d4d8" }}/>
+              <Pressable onPress={closePopup} style={{ marginTop: 10 }}>
+                <View style={{ width: 52, height: 5, borderRadius: 999, backgroundColor: "rgba(0, 0, 0, 0.34)" }}/>
+              </Pressable>
             </View>
 
-            <Text style={{ textAlign: "center", color: "#09090b", fontSize: 48, fontWeight: "800", marginBottom: 24 }}>
-              {submitLabel}
+            <Text style={{ textAlign: "center", color: "#000000", fontSize: 34, fontWeight: "800", marginBottom: 8 }}>
+              {isLogin ? "Connect to your vault" : "Create your account"}
             </Text>
+            <Text style={{ textAlign: "center", color: "rgba(0, 0, 0, 0.74)", fontSize: 14, lineHeight: 20, marginBottom: 18 }}>
+              {isLogin
+                ? "Use your email, continue as guest, or jump in with quick access."
+                : "Register once, then start cataloguing your collection with a cleaner flow."}
+            </Text>
+
+            <View style={{
+            flexDirection: "row",
+            gap: 10,
+            marginBottom: 18,
+            borderRadius: 999,
+            padding: 4,
+            backgroundColor: "rgba(255,255,255,0.06)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+        }}>
+              <Pressable onPress={() => switchMode("login")} style={{
+            flex: 1,
+            borderRadius: 999,
+            paddingVertical: 10,
+            backgroundColor: isLogin ? "#f97316" : "transparent",
+        }}>
+                <Text style={{ textAlign: "center", color: "#000000", fontWeight: "800", fontSize: 14 }}>Login</Text>
+              </Pressable>
+              <Pressable onPress={() => switchMode("register")} style={{
+            flex: 1,
+            borderRadius: 999,
+            paddingVertical: 10,
+            backgroundColor: !isLogin ? "#f97316" : "transparent",
+        }}>
+                <Text style={{ textAlign: "center", color: "#000000", fontWeight: "800", fontSize: 14 }}>Register</Text>
+              </Pressable>
+            </View>
 
             {!isLogin ? (<>
                 <TextInput value={name} onChangeText={(value) => {
                 setName(value);
                 setErrors((prev) => ({ ...prev, name: "" }));
             }} placeholder="User Name" placeholderTextColor="#a1a1aa" style={{
-                color: "#18181b",
-                borderColor: errors.name ? "#ef4444" : "#d4d4d8",
+                color: "#000000",
+                borderColor: errors.name ? "#fb7185" : "rgba(255,255,255,0.14)",
                 borderWidth: 1,
-                borderRadius: 10,
+                borderRadius: 14,
                 paddingHorizontal: 14,
                 paddingVertical: 12,
                 marginBottom: 6,
-                backgroundColor: "#f2f2f3",
-                fontSize: 20,
+                backgroundColor: "rgba(255,255,255,0.08)",
+                fontSize: 17,
             }}/>
-                {errors.name ? <Text style={{ color: "#dc2626", marginBottom: 8 }}>{errors.name}</Text> : null}
+                {errors.name ? <Text style={{ color: "#fb7185", marginBottom: 8 }}>{errors.name}</Text> : null}
               </>) : null}
 
             <TextInput value={email} onChangeText={(value) => {
             setEmail(value);
             setErrors((prev) => ({ ...prev, email: "" }));
         }} placeholder="Email" autoCapitalize="none" keyboardType="email-address" placeholderTextColor="#a1a1aa" style={{
-            color: "#18181b",
-            borderColor: errors.email ? "#ef4444" : "#d4d4d8",
+            color: "#000000",
+            borderColor: errors.email ? "#fb7185" : "rgba(255,255,255,0.14)",
             borderWidth: 1,
-            borderRadius: 10,
+            borderRadius: 14,
             paddingHorizontal: 14,
             paddingVertical: 12,
             marginBottom: 6,
-            backgroundColor: "#f2f2f3",
-            fontSize: 20,
+            backgroundColor: "rgba(255,255,255,0.08)",
+            fontSize: 17,
         }}/>
-            {errors.email ? <Text style={{ color: "#dc2626", marginBottom: 8 }}>{errors.email}</Text> : null}
+            {errors.email ? <Text style={{ color: "#fb7185", marginBottom: 8 }}>{errors.email}</Text> : null}
 
             <View style={{
-            borderColor: errors.password ? "#ef4444" : "#d4d4d8",
+            borderColor: errors.password ? "#fb7185" : "rgba(255,255,255,0.14)",
             borderWidth: 1,
-            borderRadius: 10,
-            backgroundColor: "#f2f2f3",
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.08)",
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: 14,
@@ -205,19 +392,19 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
               <TextInput value={password} onChangeText={(value) => {
             setPassword(value);
             setErrors((prev) => ({ ...prev, password: "" }));
-        }} placeholder="Password" secureTextEntry={!showPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#18181b", paddingVertical: 12, fontSize: 20 }}/>
+        }} placeholder="Password" secureTextEntry={!showPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#000000", paddingVertical: 12, fontSize: 17 }}/>
               <Pressable onPress={() => setShowPassword((prev) => !prev)}>
-                <Text style={{ color: "#b91c1c", fontSize: 16, fontWeight: "500" }}>{showPassword ? "Hide" : "Show"}</Text>
+                <Text style={{ color: "#fdba74", fontSize: 16, fontWeight: "700" }}>{showPassword ? "Hide" : "Show"}</Text>
               </Pressable>
             </View>
-            {errors.password ? <Text style={{ color: "#dc2626", marginBottom: 8 }}>{errors.password}</Text> : null}
+            {errors.password ? <Text style={{ color: "#fda4af", marginBottom: 8 }}>{errors.password}</Text> : null}
 
             {!isLogin ? (<>
                 <View style={{
-                borderColor: errors.confirmPassword ? "#ef4444" : "#d4d4d8",
+                borderColor: errors.confirmPassword ? "#ff1c36" : "rgba(255,255,255,0.14)",
                 borderWidth: 1,
-                borderRadius: 10,
-                backgroundColor: "#f2f2f3",
+                borderRadius: 14,
+                backgroundColor: "rgba(255,255,255,0.08)",
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 14,
@@ -226,22 +413,32 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
                   <TextInput value={confirmPassword} onChangeText={(value) => {
                 setConfirmPassword(value);
                 setErrors((prev) => ({ ...prev, confirmPassword: "" }));
-            }} placeholder="Confirm Password" secureTextEntry={!showConfirmPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#18181b", paddingVertical: 12, fontSize: 20 }}/>
+            }} placeholder="Confirm Password" secureTextEntry={!showConfirmPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#000000", paddingVertical: 12, fontSize: 17 }}/>
                   <Pressable onPress={() => setShowConfirmPassword((prev) => !prev)}>
-                    <Text style={{ color: "#b91c1c", fontSize: 16, fontWeight: "500" }}>{showConfirmPassword ? "Hide" : "Show"}</Text>
+                    <Text style={{ color: "#fdba74", fontSize: 16, fontWeight: "700" }}>{showConfirmPassword ? "Hide" : "Show"}</Text>
                   </Pressable>
                 </View>
-                {errors.confirmPassword ? <Text style={{ color: "#dc2626", marginBottom: 8 }}>{errors.confirmPassword}</Text> : null}
+                {errors.confirmPassword ? <Text style={{ color: "#fda4af", marginBottom: 8 }}>{errors.confirmPassword}</Text> : null}
               </>) : null}
 
-            {formError ? <Text style={{ color: "#dc2626", marginTop: 4, marginBottom: 8 }}>{formError}</Text> : null}
-            {statusMessage ? <Text style={{ color: "#52525b", marginBottom: 8 }}>{statusMessage}</Text> : null}
+            {formError ? <Text style={{ color: "#ff1c36", marginTop: 4, marginBottom: 8 }}>{formError}</Text> : null}
+            {statusMessage ? (<View style={{
+                marginBottom: 8,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "rgba(253,186,116,0.18)",
+                backgroundColor: "rgba(255,255,255,0.04)",
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+            }}>
+                <Text style={{ color: "rgba(255,237,213,0.82)", lineHeight: 18 }}>{statusMessage}</Text>
+              </View>) : null}
 
             <Pressable disabled={isSubmitting} onPress={handleSubmit} style={{
-            backgroundColor: colors.primary,
+            backgroundColor: "#f97316",
             borderRadius: 999,
             paddingVertical: 14,
-            marginTop: 24,
+            marginTop: 18,
             opacity: isSubmitting ? 0.7 : 1,
         }}>
               <Text style={{ textAlign: "center", color: "#fff", fontSize: 19, fontWeight: "800" }}>
@@ -249,34 +446,11 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
               </Text>
             </Pressable>
 
-            <Pressable onPress={isLogin ? () => setMode("register") : () => setMode("login")} style={{ marginTop: 18 }}>
-              <Text style={{ textAlign: "center", color: "#b91c1c", fontSize: 15 }}>
-                {isLogin ? "Don't have an account ? Become a collectionner" : "Already have an account ? Login"}
-              </Text>
-            </Pressable>
-
-            {isLogin ? (<Pressable style={{ marginTop: 8 }}>
-                <Text style={{ textAlign: "center", color: "#b91c1c", fontSize: 15 }}>Forgot your password?</Text>
+            {isLogin ? (<Pressable style={{ marginTop: 10 }}>
+                <Text style={{ textAlign: "center", color: "#fdba74", fontSize: 15 }}>Forgot your password?</Text>
               </Pressable>) : null}
-
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-              <Pressable onPress={() => onQuickLogin("user")} style={{ flex: 1, borderRadius: 999, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 8 }}>
-                <Text style={{ textAlign: "center", color: "#3f3f46", fontSize: 12 }}>User</Text>
-              </Pressable>
-              <Pressable onPress={() => onQuickLogin("admin")} style={{ flex: 1, borderRadius: 999, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 8 }}>
-                <Text style={{ textAlign: "center", color: "#3f3f46", fontSize: 12 }}>Admin</Text>
-              </Pressable>
-              <Pressable onPress={() => onQuickLogin("guest")} style={{ flex: 1, borderRadius: 999, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 8 }}>
-                <Text style={{ textAlign: "center", color: "#3f3f46", fontSize: 12 }}>Guest</Text>
-              </Pressable>
-            </View>
-
-            <Text style={{ color: "#71717a", marginTop: 10, fontSize: 11 }}>
-              Test users: {users.map((user) => user.email).filter(Boolean).join(" | ") || "Use a valid API account."}
-            </Text>
-
             <Pressable onPress={closePopup} style={{ marginTop: 10 }}>
-              <Text style={{ textAlign: "center", color: "#52525b", fontSize: 14 }}>Close</Text>
+              <Text style={{ textAlign: "center", color: "rgba(255,237,213,0.72)", fontSize: 14 }}>Close</Text>
             </Pressable>
           </Animated.View>
         </View>

@@ -1,11 +1,26 @@
 import * as ImagePicker from "expo-image-picker";
 import { SquarePen, Trash2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter, mapApiUserToAppUser } from "../../api/mappers";
+import { resolveAvatarSource, storeAvatarLocally } from "../avatarStorage";
 import { DetailModal } from "../components/DetailModal";
 import { requiredText, toSafeLighterPatch, validateEmail, validateLighterForm, validatePassword, } from "../validation";
+
+const avatarPlaceholder = require("../../../assets/images/prototypes/profile/posts.png");
+const sheetBackdropStyle = {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.38)",
+};
+const sheetCardStyle = {
+    maxHeight: "84%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+};
 function toUserForm(user) {
     return {
         name: user.name,
@@ -28,57 +43,72 @@ function toLighterForm(lighter) {
     };
 }
 export function ProfileScreen({ shared }) {
-    const { role, setRole, users, setUsers, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, } = shared;
+    const { role, setRole, users, setUsers, collections, setCollections, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, localAvatarMap, setLocalAvatarMap, } = shared;
     const [tab, setTab] = useState("collection");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [selectedCollection, setSelectedCollection] = useState(null);
     const [settingsForm, setSettingsForm] = useState(null);
     const [settingsErrors, setSettingsErrors] = useState({});
     const [pickerBusy, setPickerBusy] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [editingLighter, setEditingLighter] = useState(null);
+    const [editorCollection, setEditorCollection] = useState(null);
     const [selectedLighter, setSelectedLighter] = useState(null);
     const [userForm, setUserForm] = useState(null);
     const [lighterForm, setLighterForm] = useState(null);
     const [userErrors, setUserErrors] = useState({});
     const [lighterErrors, setLighterErrors] = useState({});
     const currentUser = users.find((user) => user.id === currentUserId);
-    const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId), [lighters, currentUserId]);
     const mostWanted = useMemo(() => lighters.filter((lighter) => lighter.ownerId !== currentUserId && lighter.visibility === "public"), [lighters, currentUserId]);
-    const listToRender = tab === "collection" ? myLighters : mostWanted;
+    const myCollections = useMemo(() => collections.filter((collection) => {
+        if (collection.ownerId === currentUserId) {
+            return true;
+        }
+        if (!collection.ownerId || collection.ownerId === "0") {
+            return lighters.some((lighter) => lighter.ownerId === currentUserId && lighter.collectionId === collection.id);
+        }
+        return false;
+    }), [collections, currentUserId, lighters]);
+    const selectedCollectionItems = useMemo(() => {
+        if (!selectedCollection) {
+            return [];
+        }
+        return lighters.filter((lighter) => lighter.collectionId === selectedCollection.id);
+    }, [lighters, selectedCollection]);
+    const listToRender = tab === "collection" ? myCollections : mostWanted;
     const roleText = role === "guest" ? "Guest" : role === "admin" ? "Admin Vault" : "Collector";
     const displayName = currentUser?.name ?? roleText;
     const displayBio = currentUser?.bio?.trim() || "Collector of Vintage and Rare Lighters";
+    const currentAvatarSource = resolveAvatarSource(currentUser, localAvatarMap);
+    const settingsAvatarSource = settingsForm
+        ? resolveAvatarSource({
+            avatarHash: settingsForm.avatarHash,
+            avatarUrl: settingsForm.avatarUrl,
+        }, localAvatarMap)
+        : { type: "placeholder", uri: null };
     const openSettings = () => {
         setSettingsForm({
             name: currentUser?.name ?? "",
             email: currentUser?.email ?? "",
-            avatar: currentUser?.avatar ?? "",
+            avatarHash: currentUser?.avatarHash ?? "",
+            avatarUrl: currentUser?.avatarUrl ?? currentUser?.avatar ?? "",
             bio: currentUser?.bio ?? "Collector of Vintage and Rare Lighters",
             password: "",
         });
         setSettingsErrors({});
         setIsSettingsOpen(true);
     };
-    const saveSettings = () => {
+    const saveSettings = async () => {
         if (!settingsForm || !currentUser)
             return;
         const nextErrors = {};
         const nameError = requiredText(settingsForm.name, "Name");
-        const emailError = validateEmail(settingsForm.email);
         if (nameError)
             nextErrors.name = nameError;
-        if (emailError)
-            nextErrors.email = emailError;
         if (settingsForm.password.trim().length > 0) {
             const passwordError = validatePassword(settingsForm.password);
             if (passwordError)
                 nextErrors.password = passwordError;
-        }
-        const duplicateEmail = users.some((user) => user.id !== currentUser.id &&
-            user.email &&
-            user.email.toLowerCase() === settingsForm.email.trim().toLowerCase());
-        if (duplicateEmail) {
-            nextErrors.email = "Another user already has this email.";
         }
         setSettingsErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0)
@@ -87,22 +117,29 @@ export function ProfileScreen({ shared }) {
             Alert.alert("Authentication required", "Log in with your API account before updating your profile.");
             return;
         }
-        apiRequest(`/users/${currentUser.id}`, {
-            method: "PUT",
-            token: authToken,
-            body: JSON.stringify({
-                name: settingsForm.name.trim(),
-                email: settingsForm.email.trim().toLowerCase(),
-                ...(settingsForm.password.trim() ? { password: settingsForm.password } : {}),
-                avatar_url: settingsForm.avatar.trim(),
-                nationality: settingsForm.bio.trim(),
-            }),
-        })
-            .then((updated) => {
+        try {
+            const updated = await apiRequest(`/users/${currentUser.id}`, {
+                method: "PUT",
+                token: authToken,
+                body: JSON.stringify({
+                    name: settingsForm.name.trim(),
+                    email: currentUser.email?.trim().toLowerCase() ?? "",
+                    ...(settingsForm.password.trim() ? { password: settingsForm.password } : {}),
+                    avatar_hash: settingsForm.avatarHash.trim() || null,
+                    nationality: settingsForm.bio.trim(),
+                }),
+            });
+            const apiUser = mapApiUserToAppUser(unwrapApiData(updated));
+            const avatarHash = settingsForm.avatarHash.trim();
+            const avatarUrl = avatarHash ? apiUser.avatarUrl ?? currentUser.avatarUrl ?? "" : "";
             const mapped = {
-                ...mapApiUserToAppUser(unwrapApiData(updated)),
+                ...currentUser,
+                ...apiUser,
+                name: settingsForm.name.trim(),
                 bio: settingsForm.bio.trim(),
-                avatar: settingsForm.avatar.trim(),
+                avatar: avatarUrl,
+                avatarUrl,
+                avatarHash,
             };
             setUsers((prev) => prev.map((user) => (user.id === currentUser.id ? mapped : user)));
             setRole(mapped.role);
@@ -110,11 +147,21 @@ export function ProfileScreen({ shared }) {
             setSettingsForm(null);
             setSettingsErrors({});
             refreshAppData().catch(() => null);
-        })
-            .catch((error) => {
+        }
+        catch (error) {
             const message = error instanceof Error ? error.message : "Unable to update your profile.";
             Alert.alert("Update failed", message);
-        });
+        }
+    };
+    const applyPickedAvatar = async (sourceUri) => {
+        const storedAvatar = await storeAvatarLocally(sourceUri, localAvatarMap);
+        setLocalAvatarMap(storedAvatar.localAvatarMap);
+        setSettingsForm((prev) => (prev
+            ? {
+                ...prev,
+                avatarHash: storedAvatar.avatarHash,
+            }
+            : prev));
     };
     const pickPhotoFromLibrary = async () => {
         if (!settingsForm || pickerBusy)
@@ -133,9 +180,12 @@ export function ProfileScreen({ shared }) {
                 quality: 0.85,
             });
             if (!result.canceled && result.assets.length > 0) {
-                setSettingsForm((prev) => (prev ? { ...prev, avatar: result.assets[0].uri } : prev));
-                setSettingsErrors((prev) => ({ ...prev, avatar: "" }));
+                await applyPickedAvatar(result.assets[0].uri ?? "");
             }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : "Unable to save the selected photo on this device.";
+            Alert.alert("Photo not saved", message);
         }
         finally {
             setPickerBusy(false);
@@ -157,9 +207,12 @@ export function ProfileScreen({ shared }) {
                 quality: 0.85,
             });
             if (!result.canceled && result.assets.length > 0) {
-                setSettingsForm((prev) => (prev ? { ...prev, avatar: result.assets[0].uri } : prev));
-                setSettingsErrors((prev) => ({ ...prev, avatar: "" }));
+                await applyPickedAvatar(result.assets[0].uri ?? "");
             }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : "Unable to save the captured photo on this device.";
+            Alert.alert("Photo not saved", message);
         }
         finally {
             setPickerBusy(false);
@@ -171,12 +224,16 @@ export function ProfileScreen({ shared }) {
         setUserErrors({});
     };
     const openLighterEditor = (lighter) => {
+        const collectionForEditor = selectedCollection ?? collections.find((collection) => collection.id === lighter.collectionId) ?? null;
         setEditingLighter(lighter);
+        setEditorCollection(collectionForEditor);
         setLighterForm(toLighterForm(lighter));
         setLighterErrors({});
+        setSelectedCollection(null);
     };
-    const openCreateLighter = () => {
+    const openCreateLighter = (collection) => {
         setEditingLighter(null);
+        setEditorCollection(collection);
         setLighterForm({
             name: "",
             brand: "",
@@ -189,6 +246,22 @@ export function ProfileScreen({ shared }) {
             visibility: "private",
         });
         setLighterErrors({});
+        setSelectedCollection(null);
+    };
+    const openCollection = (collection) => {
+        setSelectedLighter(null);
+        setEditingLighter(null);
+        setLighterForm(null);
+        setLighterErrors({});
+        setEditorCollection(null);
+        setSelectedCollection(collection);
+    };
+    const closeLighterEditor = () => {
+        setEditingLighter(null);
+        setLighterForm(null);
+        setLighterErrors({});
+        setSelectedCollection((prev) => prev ?? editorCollection);
+        setEditorCollection(null);
     };
     const saveUser = () => {
         if (!editingUser || !userForm)
@@ -258,6 +331,7 @@ export function ProfileScreen({ shared }) {
             status: patch.visibility === "public",
             category1_id: 1,
             category2_id: null,
+            ...(editorCollection?.id ? { collection_id: Number(editorCollection.id) || editorCollection.id } : {}),
         };
         try {
             if (editingLighter) {
@@ -266,7 +340,12 @@ export function ProfileScreen({ shared }) {
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(updated)), ownerId: editingLighter.ownerId, ...patch };
+                const mapped = {
+                    ...mapApiItemToLighter(unwrapApiData(updated)),
+                    ownerId: editingLighter.ownerId,
+                    collectionId: editorCollection?.id ?? editingLighter.collectionId ?? "",
+                    ...patch,
+                };
                 setLighters((prev) => prev.map((lighter) => (lighter.id === editingLighter.id ? mapped : lighter)));
             }
             else {
@@ -275,12 +354,33 @@ export function ProfileScreen({ shared }) {
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                const mapped = {
+                    ...mapApiItemToLighter(unwrapApiData(created)),
+                    ownerId: currentUserId,
+                    collectionId: editorCollection?.id ?? "",
+                    ...patch,
+                };
                 setLighters((prev) => [mapped, ...prev]);
+                if (editorCollection?.id) {
+                    setCollections((prev) => prev.map((collection) => (collection.id === editorCollection.id
+                        ? {
+                            ...collection,
+                            itemCount: collection.itemCount + 1,
+                        }
+                        : collection)));
+                    setSelectedCollection((prev) => (prev && prev.id === editorCollection.id
+                        ? {
+                            ...prev,
+                            itemCount: prev.itemCount + 1,
+                        }
+                        : prev));
+                }
             }
             setEditingLighter(null);
             setLighterForm(null);
             setLighterErrors({});
+            setSelectedCollection((prev) => prev ?? editorCollection);
+            setEditorCollection(null);
             refreshAppData().catch(() => null);
         }
         catch (error) {
@@ -301,6 +401,7 @@ export function ProfileScreen({ shared }) {
         })
             .then(() => {
             setUsers((prev) => prev.filter((user) => user.id !== id));
+            setCollections((prev) => prev.filter((collection) => collection.ownerId !== id));
             setLighters((prev) => prev.filter((lighter) => lighter.ownerId !== id));
             refreshAppData().catch(() => null);
         })
@@ -319,7 +420,22 @@ export function ProfileScreen({ shared }) {
             token: authToken,
         })
             .then(() => {
+            const lighterToDelete = lighters.find((lighter) => lighter.id === id);
             setLighters((prev) => prev.filter((lighter) => lighter.id !== id));
+            if (lighterToDelete?.collectionId) {
+                setCollections((prev) => prev.map((collection) => (collection.id === lighterToDelete.collectionId
+                    ? {
+                        ...collection,
+                        itemCount: Math.max(0, collection.itemCount - 1),
+                    }
+                    : collection)));
+                setSelectedCollection((prev) => (prev && prev.id === lighterToDelete.collectionId
+                    ? {
+                        ...prev,
+                        itemCount: Math.max(0, prev.itemCount - 1),
+                    }
+                    : prev));
+            }
             if (selectedLighter?.id === id)
                 setSelectedLighter(null);
             refreshAppData().catch(() => null);
@@ -329,21 +445,21 @@ export function ProfileScreen({ shared }) {
             Alert.alert("Delete failed", message);
         });
     };
-    return (<SafeAreaView style={{ flex: 1, backgroundColor: "#ececec" }}>
+    return (<SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View style={{ marginHorizontal: -16, marginTop: -16, backgroundColor: "#b8121c", padding: 18, paddingBottom: 64 }}>
+        <View style={{ marginHorizontal: -16, marginTop: -16, backgroundColor: colors.panelSoft, borderBottomWidth: 1, borderBottomColor: colors.border, padding: 18, paddingBottom: 64 }}>
           <View style={{ alignItems: "flex-end" }}>
             <Pressable onPress={openSettings}>
-              <Text style={{ color: "#fff", fontSize: 32, fontWeight: "500" }}>Settings</Text>
+              <Text style={{ color: colors.accent, fontSize: 28, fontWeight: "800", letterSpacing: 0.4 }}>Settings</Text>
             </Pressable>
           </View>
 
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <Image source={currentUser?.avatar?.trim() ? { uri: currentUser.avatar } : require("../../../assets/images/prototypes/profile/posts.png")} style={{ width: 160, height: 160, borderRadius: 999, borderWidth: 3, borderColor: "#fff", marginBottom: -78 }}/>
+            <Image source={currentAvatarSource.uri ? { uri: currentAvatarSource.uri } : avatarPlaceholder} style={{ width: 160, height: 160, borderRadius: 999, borderWidth: 3, borderColor: colors.accent, marginBottom: -78 }}/>
             <Text style={{
-            color: "#fff",
+            color: colors.text,
             fontSize: 44,
-            fontWeight: "800",
+            fontWeight: "900",
             lineHeight: 46,
             textAlign: "right",
             maxWidth: "56%",
@@ -355,57 +471,77 @@ export function ProfileScreen({ shared }) {
         </View>
 
         <View style={{ alignItems: "flex-end", marginTop: 34, marginBottom: 18 }}>
-          <Text style={{ color: "#111", fontSize: 27, fontWeight: "600", lineHeight: 32, textAlign: "right", maxWidth: "78%" }}>
+          <Text style={{ color: colors.muted, fontSize: 24, fontWeight: "700", lineHeight: 31, textAlign: "right", maxWidth: "78%" }}>
             {displayBio}
           </Text>
         </View>
 
-        <View style={{ borderRadius: 999, borderWidth: 1, borderColor: "#dbdbdb", backgroundColor: "#e6e6e6", padding: 3, flexDirection: "row", marginBottom: 16 }}>
-          <Pressable onPress={() => setTab("collection")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "collection" ? "#f7f7f7" : "transparent", borderWidth: tab === "collection" ? 1 : 0, borderColor: "#c81e1e" }}>
-            <Text style={{ textAlign: "center", color: tab === "collection" ? "#c81e1e" : "#a3a3a3", fontSize: 18, fontWeight: "700" }}>
+        <View style={{ borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 3, flexDirection: "row", marginBottom: 16 }}>
+          <Pressable onPress={() => setTab("collection")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "collection" ? colors.panel : "transparent", borderWidth: tab === "collection" ? 1 : 0, borderColor: colors.primary }}>
+            <Text style={{ textAlign: "center", color: tab === "collection" ? colors.primary : colors.muted, fontSize: 18, fontWeight: "800" }}>
               My Collection
             </Text>
           </Pressable>
-          <Pressable onPress={() => setTab("wanted")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "wanted" ? "#f7f7f7" : "transparent" }}>
-            <Text style={{ textAlign: "center", color: tab === "wanted" ? "#8b5e43" : "#a3a3a3", fontSize: 18, fontWeight: "700" }}>
+          <Pressable onPress={() => setTab("wanted")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "wanted" ? colors.panel : "transparent", borderWidth: tab === "wanted" ? 1 : 0, borderColor: colors.accent }}>
+            <Text style={{ textAlign: "center", color: tab === "wanted" ? colors.accent : colors.muted, fontSize: 18, fontWeight: "800" }}>
               Most Wanted
             </Text>
           </Pressable>
         </View>
 
-        {tab === "collection" && role !== "guest" ? (<Pressable onPress={openCreateLighter} style={{ marginBottom: 12, borderRadius: 999, backgroundColor: "#8b5e43", paddingVertical: 12 }}>
-            <Text style={{ textAlign: "center", color: "#fff", fontSize: 17, fontWeight: "700" }}>Add Lighter to My Collection</Text>
-          </Pressable>) : null}
-
-        {listToRender.length === 0 ? (<View style={{ borderRadius: 18, backgroundColor: "#f8f8f8", borderWidth: 1, borderColor: "#dfdfdf", padding: 20 }}>
-            <Text style={{ color: "#737373", fontSize: 16, textAlign: "center" }}>
-              No lighters found in this section yet.
+        {tab === "collection" && role !== "guest" ? (<View style={{ marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14 }}>
+            <Text style={{ color: colors.text, fontSize: 16, fontWeight: "800" }}>My Collections</Text>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>
+              Collections created in the `New` tab appear here.
             </Text>
           </View>) : null}
 
-        {listToRender.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: "#dfdfdf", backgroundColor: "#f8f8f8", padding: 12, flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-            <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-              <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
-              <Text style={{ color: "#111", fontSize: 19, fontWeight: "700", flex: 1 }} numberOfLines={1}>
-                {lighter.name}
-              </Text>
-            </Pressable>
+        {listToRender.length === 0 ? (<View style={{ borderRadius: 18, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 20 }}>
+            <Text style={{ color: colors.muted, fontSize: 16, textAlign: "center" }}>
+              {tab === "collection" ? "No collections created yet." : "No lighters found in this section yet."}
+            </Text>
+          </View>) : null}
 
-            {tab === "collection" && lighter.ownerId === currentUserId ? (<View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
-                <Pressable onPress={() => openLighterEditor(lighter)}>
-                  <SquarePen color="#111" size={18}/>
+        {tab === "collection"
+            ? listToRender.map((collection) => (<View key={collection.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14, marginBottom: 10 }}>
+                <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800" }} numberOfLines={1}>
+                  {collection.title}
+                </Text>
+                <Text style={{ color: colors.muted, marginTop: 6, lineHeight: 20 }}>
+                  {collection.description}
+                </Text>
+                <Text style={{ color: colors.primary, marginTop: 8, fontWeight: "700" }}>
+                  {collection.itemCount} items
+                </Text>
+                <Pressable onPress={() => openCollection(collection)} style={{ marginTop: 10, alignSelf: "flex-start", borderRadius: 999, borderWidth: 1, borderColor: colors.accent, paddingHorizontal: 14, paddingVertical: 8 }}>
+                  <Text style={{ color: colors.accent, fontWeight: "700" }}>
+                    Open collection
+                  </Text>
                 </Pressable>
-                <Pressable onPress={() => Alert.alert("Delete Lighter", "Are you sure you want to delete this lighter?", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Delete", style: "destructive", onPress: () => deleteLighter(lighter.id) },
-                ])}>
-                  <Trash2 color="#ef4444" size={18}/>
+              </View>))
+            : listToRender.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 12, flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+                  <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
+                  <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800", flex: 1 }} numberOfLines={1}>
+                    {lighter.name}
+                  </Text>
                 </Pressable>
-              </View>) : null}
-          </View>))}
+
+                {lighter.ownerId === currentUserId ? (<View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
+                    <Pressable onPress={() => openLighterEditor(lighter)}>
+                      <SquarePen color={colors.text} size={18}/>
+                    </Pressable>
+                    <Pressable onPress={() => Alert.alert("Delete Lighter", "Are you sure you want to delete this lighter?", [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Delete", style: "destructive", onPress: () => deleteLighter(lighter.id) },
+                    ])}>
+                      <Trash2 color="#ef4444" size={18}/>
+                    </Pressable>
+                  </View>) : null}
+              </View>))}
 
         {role === "admin" ? (<>
-            <Text style={{ color: "#111", fontSize: 22, fontWeight: "800", marginTop: 18, marginBottom: 10 }}>Admin Users</Text>
+            <Text style={{ color: colors.text, fontSize: 22, fontWeight: "900", marginTop: 18, marginBottom: 10 }}>Admin Users</Text>
             {users.map((user) => (<View key={user.id} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 10, marginBottom: 10, backgroundColor: colors.panel, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: colors.text, fontWeight: "700" }}>{user.name}</Text>
@@ -422,7 +558,7 @@ export function ProfileScreen({ shared }) {
                 </View>
               </View>))}
 
-            <Text style={{ color: "#111", fontSize: 22, fontWeight: "800", marginTop: 12, marginBottom: 10 }}>Admin Products</Text>
+            <Text style={{ color: colors.text, fontSize: 22, fontWeight: "900", marginTop: 12, marginBottom: 10 }}>Admin Products</Text>
             {lighters.map((lighter) => (<View key={lighter.id} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 10, marginBottom: 10, backgroundColor: colors.panel, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: colors.text, fontWeight: "700" }}>{lighter.name}</Text>
@@ -442,28 +578,33 @@ export function ProfileScreen({ shared }) {
       </ScrollView>
 
       <Modal visible={isSettingsOpen && !!settingsForm} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
+          <Pressable onPress={() => setIsSettingsOpen(false)} style={{ ...StyleSheet.absoluteFillObject }}/>
           <ScrollView style={{ maxHeight: "84%", backgroundColor: "#f4f4f5", borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: "#e5e7eb", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
             <Text style={{ color: "#111", fontSize: 30, fontWeight: "800", marginBottom: 8 }}>Settings</Text>
-
             {settingsForm ? (<>
                 {[
                 ["name", "Display Name"],
                 ["email", "Email"],
-                ["avatar", "Profile Photo URL"],
                 ["bio", "Bio"],
                 ["password", "New Password (optional)"],
             ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
                     <Text style={{ color: "#52525b", marginBottom: 4 }}>{label}</Text>
                     <TextInput value={settingsForm[field]} onChangeText={(value) => {
+                    if (field === "email")
+                        return;
                     setSettingsForm((prev) => (prev ? { ...prev, [field]: value } : prev));
                     setSettingsErrors((prev) => ({ ...prev, [field]: "" }));
-                }} autoCapitalize={field === "email" || field === "avatar" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={field === "bio"} style={{ color: "#111", borderColor: settingsErrors[field] ? "#ef4444" : "#d4d4d8", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#fdfdfd", minHeight: field === "bio" ? 84 : undefined, textAlignVertical: field === "bio" ? "top" : "center" }}/>
+                }} autoCapitalize={field === "email" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={field === "bio"} editable={field !== "email"} selectTextOnFocus={field !== "email"} style={{ color: field === "email" ? "#71717a" : "#111", borderColor: settingsErrors[field] ? "#ef4444" : "#d4d4d8", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: field === "email" ? "#f4f4f5" : "#fdfdfd", minHeight: field === "bio" ? 84 : undefined, textAlignVertical: field === "bio" ? "top" : "center" }}/>
+                    {field === "email" ? <Text style={{ color: "#71717a", marginTop: 4 }}>The email is fixed and cannot be changed here.</Text> : null}
                     {settingsErrors[field] ? <Text style={{ color: "#dc2626", marginTop: 4 }}>{settingsErrors[field]}</Text> : null}
                   </View>))}
 
                 <View style={{ marginTop: 10 }}>
                   <Text style={{ color: "#52525b", marginBottom: 6 }}>Photo Picker</Text>
+                  <Text style={{ color: "#71717a", marginBottom: 8, lineHeight: 19 }}>
+                    The app stores the selected photo locally, generates an `avatar_hash`, and only sends that hash to the API.
+                  </Text>
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <Pressable onPress={pickPhotoFromLibrary} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
                       <Text style={{ textAlign: "center", color: "#111", fontWeight: "600" }}>
@@ -476,13 +617,20 @@ export function ProfileScreen({ shared }) {
                       </Text>
                     </Pressable>
                   </View>
-                  <Pressable onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatar: "" } : prev))} style={{ marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
+                  <Pressable onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatarHash: "", avatarUrl: "" } : prev))} style={{ marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
                     <Text style={{ textAlign: "center", color: "#52525b", fontWeight: "600" }}>Use Default Photo</Text>
                   </Pressable>
+                  <Text style={{ color: "#71717a", marginTop: 8 }}>
+                    {settingsForm.avatarHash
+                        ? `avatar_hash: ${settingsForm.avatarHash}`
+                        : settingsForm.avatarUrl
+                            ? "No local match. The profile will fall back to the remote avatar URL."
+                            : "No avatar selected. The profile will use the placeholder."}
+                  </Text>
                 </View>
 
                 <View style={{ marginTop: 10, alignItems: "center" }}>
-                  <Image source={settingsForm.avatar.trim() ? { uri: settingsForm.avatar } : require("../../../assets/images/prototypes/profile/posts.png")} style={{ width: 104, height: 104, borderRadius: 999, borderWidth: 2, borderColor: "#d4d4d8" }}/>
+                  <Image source={settingsAvatarSource.uri ? { uri: settingsAvatarSource.uri } : avatarPlaceholder} style={{ width: 104, height: 104, borderRadius: 999, borderWidth: 2, borderColor: "#d4d4d8" }}/>
                 </View>
 
                 <Pressable onPress={saveSettings} style={{ marginTop: 14, backgroundColor: "#b8121c", borderRadius: 999, paddingVertical: 13 }}>
@@ -495,26 +643,70 @@ export function ProfileScreen({ shared }) {
                   </Text>
                 </Pressable>
 
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
-                  {["guest", "user", "admin"].map((quickRole) => (<Pressable key={quickRole} onPress={() => setRole(quickRole)} style={{ flex: 1, borderRadius: 999, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: role === quickRole ? "#b8121c" : "transparent" }}>
-                      <Text style={{ textAlign: "center", color: role === quickRole ? "#fff" : "#111", textTransform: "capitalize" }}>{quickRole}</Text>
-                    </Pressable>))}
-                </View>
 
                 <Pressable onPress={logout} style={{ marginTop: 10, borderWidth: 1, borderColor: "#ef4444", borderRadius: 999, paddingVertical: 12 }}>
                   <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "700" }}>Logout</Text>
                 </Pressable>
 
-                <Pressable onPress={() => setIsSettingsOpen(false)} style={{ marginTop: 10 }}>
-                  <Text style={{ textAlign: "center", color: "#52525b" }}>Close</Text>
-                </Pressable>
               </>) : null}
           </ScrollView>
         </View>
       </Modal>
 
+      <Modal visible={!!selectedCollection} transparent animationType="slide" onRequestClose={() => setSelectedCollection(null)}>
+        <View style={sheetBackdropStyle}>
+          <Pressable onPress={() => setSelectedCollection(null)} style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" }}/>
+          <View style={{ ...sheetCardStyle, backgroundColor: colors.panel, borderColor: colors.border }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+            {selectedCollection ? (<>
+                <Text style={{ color: colors.text, fontSize: 28, fontWeight: "800" }}>{selectedCollection.title}</Text>
+                <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 20 }}>{selectedCollection.description}</Text>
+
+                <Pressable onPress={() => openCreateLighter(selectedCollection)} style={{ marginTop: 14, borderRadius: 999, backgroundColor: colors.primary, paddingVertical: 13 }}>
+                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "900" }}>Create Item In This Collection</Text>
+                </Pressable>
+
+                <Text style={{ color: colors.text, fontSize: 20, fontWeight: "800", marginTop: 18 }}>Items</Text>
+                {selectedCollectionItems.length === 0 ? (<View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 16, marginTop: 10 }}>
+                    <Text style={{ color: colors.muted, textAlign: "center" }}>No items in this collection yet.</Text>
+                  </View>) : null}
+
+                {selectedCollectionItems.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 12, flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+                    <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+                      <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.text, fontSize: 18, fontWeight: "800" }} numberOfLines={1}>
+                          {lighter.name}
+                        </Text>
+                        <Text style={{ color: colors.muted }} numberOfLines={1}>
+                          {lighter.brand} • {lighter.year}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
+                      <Pressable onPress={() => openLighterEditor(lighter)}>
+                        <SquarePen color={colors.text} size={18}/>
+                      </Pressable>
+                      <Pressable onPress={() => Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => deleteLighter(lighter.id) },
+                        ])}>
+                        <Trash2 color="#ef4444" size={18}/>
+                      </Pressable>
+                    </View>
+                  </View>))}
+
+                <Pressable onPress={() => setSelectedCollection(null)} style={{ marginTop: 16 }}>
+                  <Text style={{ textAlign: "center", color: colors.muted }}>Close</Text>
+                </Pressable>
+              </>) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={!!editingUser && !!userForm} transparent animationType="slide" onRequestClose={() => setEditingUser(null)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
           <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
             <Text style={{ color: colors.text, fontSize: 24, fontWeight: "800" }}>Edit User</Text>
             {userForm ? (<>
@@ -553,10 +745,11 @@ export function ProfileScreen({ shared }) {
 
       <DetailModal item={selectedLighter} onClose={() => setSelectedLighter(null)} colors={colors}/>
 
-      <Modal visible={!!lighterForm} transparent animationType="slide" onRequestClose={() => { setEditingLighter(null); setLighterForm(null); }}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" }}>
+      <Modal visible={!!lighterForm} transparent animationType="slide" onRequestClose={closeLighterEditor}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.bg }}>
           <ScrollView style={{ maxHeight: "84%", backgroundColor: colors.panel, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
             <Text style={{ color: colors.text, fontSize: 24, fontWeight: "800" }}>{editingLighter ? "Edit Product" : "Add Product"}</Text>
+            {editorCollection ? <Text style={{ color: colors.muted, marginTop: 4 }}>Collection: {editorCollection.title}</Text> : null}
             {lighterForm ? (<>
                 {[
                 ["name", "Name"],
@@ -592,7 +785,7 @@ export function ProfileScreen({ shared }) {
                 <Pressable onPress={saveLighter} style={{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12 }}>
                   <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>Save Product</Text>
                 </Pressable>
-                <Pressable onPress={() => { setEditingLighter(null); setLighterForm(null); }} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
+                <Pressable onPress={closeLighterEditor} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
                   <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Cancel</Text>
                 </Pressable>
               </>) : null}

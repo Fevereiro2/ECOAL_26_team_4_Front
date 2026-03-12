@@ -137,15 +137,19 @@ export function VaultScreen({ shared }) {
     };
     return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <View style={styles.screenPad}>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>My Vault</Text>
+        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 }}>Club garage</Text>
+        <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>My Vault</Text>
+        <Text style={{ color: colors.muted, marginBottom: 14, lineHeight: 19 }}>
+          Your private garage for collector pieces, tuned notes and road-ready comparisons.
+        </Text>
         <View style={styles.rowBetween}>
           <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11 }}>Pieces</Text>
-            <Text style={{ color: colors.primary, fontSize: 20, fontWeight: "700" }}>{myLighters.length}</Text>
+            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Machines</Text>
+            <Text style={{ color: colors.primary, fontSize: 22, fontWeight: "900" }}>{myLighters.length}</Text>
           </View>
           <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11 }}>Avg Value</Text>
-            <Text style={{ color: colors.accent, fontSize: 20, fontWeight: "700" }}>{avgValue}/10</Text>
+            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Road score</Text>
+            <Text style={{ color: colors.accent, fontSize: 22, fontWeight: "900" }}>{avgValue}/10</Text>
           </View>
         </View>
         <TextInput placeholder="Search your collection" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[
@@ -153,17 +157,17 @@ export function VaultScreen({ shared }) {
             { color: colors.text, backgroundColor: colors.panel, borderColor: colors.border },
         ]}/>
         <Pressable onPress={openCreateForm} style={{
-            marginTop: 6,
-            borderRadius: 10,
+            marginTop: 8,
+            borderRadius: 999,
             backgroundColor: colors.primary,
-            paddingVertical: 10,
+            paddingVertical: 13,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
         }}>
-          <Plus color="#111" size={18}/>
-          <Text style={{ color: "#111", fontWeight: "800" }}>Add New Lighter</Text>
+          <Plus color="#1a120d" size={18}/>
+          <Text style={{ color: "#1a120d", fontWeight: "900", letterSpacing: 0.4 }}>Add New Lighter</Text>
         </Pressable>
       </View>
 
@@ -177,7 +181,7 @@ export function VaultScreen({ shared }) {
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
                   {item.brand} • {item.year}
                 </Text>
-                <Text style={{ color: colors.primary, fontSize: 12 }}>{item.mechanism}</Text>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "800", textTransform: "uppercase" }}>{item.mechanism}</Text>
               </View>
             </Pressable>
 
