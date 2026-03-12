@@ -263,6 +263,12 @@ export function ProfileScreen({ shared }) {
         setSelectedCollection((prev) => prev ?? editorCollection);
         setEditorCollection(null);
     };
+    const confirmLogout = () => {
+        Alert.alert("Logout", "Do you really want to sign out?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Logout", style: "destructive", onPress: logout },
+        ]);
+    };
     const saveUser = () => {
         if (!editingUser || !userForm)
             return;
@@ -329,8 +335,7 @@ export function ProfileScreen({ shared }) {
             description: patch.description,
             image_url: patch.image,
             status: patch.visibility === "public",
-            category1_id: 1,
-            category2_id: null,
+            category_ids: [1],
             ...(editorCollection?.id ? { collection_id: Number(editorCollection.id) || editorCollection.id } : {}),
         };
         try {
@@ -575,6 +580,10 @@ export function ProfileScreen({ shared }) {
                 </View>
               </View>))}
           </>) : null}
+
+        {role !== "guest" ? (<Pressable onPress={confirmLogout} style={{ marginTop: 12, borderWidth: 1, borderColor: "#ef4444", borderRadius: 999, paddingVertical: 14, backgroundColor: colors.panel }}>
+            <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "800" }}>Logout</Text>
+          </Pressable>) : null}
       </ScrollView>
 
       <Modal visible={isSettingsOpen && !!settingsForm} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
@@ -642,12 +651,6 @@ export function ProfileScreen({ shared }) {
                     {theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
                   </Text>
                 </Pressable>
-
-
-                <Pressable onPress={logout} style={{ marginTop: 10, borderWidth: 1, borderColor: "#ef4444", borderRadius: 999, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "700" }}>Logout</Text>
-                </Pressable>
-
               </>) : null}
           </ScrollView>
         </View>

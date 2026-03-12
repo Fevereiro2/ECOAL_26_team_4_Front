@@ -83,8 +83,7 @@ export function VaultScreen({ shared }) {
             description: patch.description,
             image_url: patch.image,
             status: patch.visibility === "public",
-            category1_id: 1,
-            category2_id: null,
+            category_ids: [1],
         };
         try {
             if (editing) {
