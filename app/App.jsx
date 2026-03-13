@@ -4,7 +4,7 @@ import { Compass, Flame, Library, Plus, User } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
 import { API_BASE_URL, apiRequest, unwrapApiData } from "./api/client";
-import { mapApiCollectionToAppCollection, mapApiItemToLighter, mapApiUserToAppUser } from "./api/mappers";
+import { mapApiCollectionToAppCollection, mapApiItemToLighter, mapApiUserToAppUser, mapCriterionToAppKey } from "./api/mappers";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { loadLocalAvatarMap } from "./native/avatarStorage";
 import { palette } from "./native/palette";
@@ -60,6 +60,44 @@ function mergeUsersPreservingSessionFields(nextUsers, previousUsers, sessionUser
     }
     return [sessionUser, ...mergedUsers];
 }
+function mergeItemCriteriaIntoLighters(lighters, itemCriteriaRows) {
+    const scoresByItemId = new Map();
+    for (const row of itemCriteriaRows) {
+        const itemId = String(row.id_item ?? row.item?.id ?? "");
+        const criterionId = String(row.id_criteria ?? row.criteria?.id_criteria ?? row.criteria?.id ?? "");
+        if (!itemId || !criterionId) {
+            continue;
+        }
+        const nextScores = scoresByItemId.get(itemId) ?? {};
+        nextScores[criterionId] = Number(row.value ?? 0);
+        scoresByItemId.set(itemId, nextScores);
+    }
+    return lighters.map((lighter) => {
+        const criteriaValues = scoresByItemId.get(lighter.id);
+        if (!criteriaValues) {
+            return lighter;
+        }
+        const nextCriteria = { ...lighter.criteria };
+        for (const [criterionId, value] of Object.entries(criteriaValues)) {
+            const key = mapCriterionToAppKey({ id_criteria: criterionId });
+            if (key) {
+                nextCriteria[key] = value;
+            }
+        }
+        return {
+            ...lighter,
+            criteria: nextCriteria,
+            criteriaValues: {
+                ...lighter.criteriaValues,
+                ...criteriaValues,
+            },
+        };
+    });
+}
+function toLookupCollection(response, mapItem) {
+    const rows = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [];
+    return rows.map(mapItem);
+}
 
 function AppShell() {
     const { theme, toggleTheme } = useTheme();
@@ -67,6 +105,8 @@ function AppShell() {
     const [users, setUsers] = useState([]);
     const [collections, setCollections] = useState([]);
     const [lighters, setLighters] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [criteriaCatalog, setCriteriaCatalog] = useState([]);
     const [role, setRole] = useState("guest");
     const [currentUserId, setCurrentUserId] = useState(guestUser.id);
     const [isLoading, setIsLoading] = useState(true);
@@ -121,31 +161,62 @@ function AppShell() {
         const response = await apiRequest("/collections");
         return normalizeCollection(response).map(mapApiCollectionToAppCollection);
     }, [normalizeCollection]);
+    const loadCategories = useCallback(async () => {
+        const response = await apiRequest("/categories");
+        return toLookupCollection(response, (category) => ({
+            id: String(category.id),
+            title: category.title ?? category.name ?? `Category ${category.id}`,
+        }));
+    }, []);
+    const loadCriteriaCatalog = useCallback(async () => {
+        const response = await apiRequest("/criteria");
+        return toLookupCollection(response, (criterion) => ({
+            id: String(criterion.id_criteria ?? criterion.id),
+            name: criterion.name ?? `Criteria ${criterion.id_criteria ?? criterion.id}`,
+        }));
+    }, []);
+    const loadItemCriteria = useCallback(async () => {
+        const rows = [];
+        let page = 1;
+        let lastPage = 1;
+        do {
+            const response = await apiRequest(`/item-criteria?page=${page}`);
+            const nextRows = Array.isArray(response?.data) ? response.data : [];
+            rows.push(...nextRows);
+            lastPage = Number(response?.meta?.last_page ?? 1);
+            page += 1;
+        } while (page <= lastPage);
+        return rows;
+    }, []);
     const refreshAppData = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            const [nextUsers, nextCollections, nextItems] = await Promise.all([loadUsers(), loadCollections(), loadItems()]);
+            const [nextUsers, nextCollections, nextItems, nextCategories, nextCriteriaCatalog, nextItemCriteria] = await Promise.all([loadUsers(), loadCollections(), loadItems(), loadCategories(), loadCriteriaCatalog(), loadItemCriteria()]);
             setUsers((prev) => {
                 const sessionUser = prev.find((user) => user.id === currentUserId);
                 return mergeUsersPreservingSessionFields(nextUsers, prev, sessionUser);
             });
             setCollections(nextCollections);
-            setLighters(nextItems);
+            setCategories(nextCategories);
+            setCriteriaCatalog(nextCriteriaCatalog);
+            setLighters(mergeItemCriteriaIntoLighters(nextItems, nextItemCriteria));
         }
         finally {
             setIsRefreshing(false);
         }
-    }, [currentUserId, loadCollections, loadItems, loadUsers]);
+    }, [currentUserId, loadCategories, loadCollections, loadCriteriaCatalog, loadItemCriteria, loadItems, loadUsers]);
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
-                const [nextUsers, nextCollections, nextItems] = await Promise.all([loadUsers(), loadCollections(), loadItems()]);
+                const [nextUsers, nextCollections, nextItems, nextCategories, nextCriteriaCatalog, nextItemCriteria] = await Promise.all([loadUsers(), loadCollections(), loadItems(), loadCategories(), loadCriteriaCatalog(), loadItemCriteria()]);
                 if (cancelled)
                     return;
                 setUsers((prev) => mergeUsersPreservingSessionFields(nextUsers, prev, prev.find((user) => user.id === currentUserId)));
                 setCollections(nextCollections);
-                setLighters(nextItems);
+                setCategories(nextCategories);
+                setCriteriaCatalog(nextCriteriaCatalog);
+                setLighters(mergeItemCriteriaIntoLighters(nextItems, nextItemCriteria));
             }
             catch (error) {
                 if (cancelled)
@@ -161,7 +232,7 @@ function AppShell() {
         return () => {
             cancelled = true;
         };
-    }, [currentUserId, loadCollections, loadItems, loadUsers]);
+    }, [currentUserId, loadCategories, loadCollections, loadCriteriaCatalog, loadItemCriteria, loadItems, loadUsers]);
     const navTheme = useMemo(() => ({
         ...DefaultTheme,
         colors: {
@@ -215,6 +286,8 @@ function AppShell() {
         isBootstrapping,
         isRefreshing,
         authError,
+        categories,
+        criteriaCatalog,
         collections,
         setCollections,
         lighters,

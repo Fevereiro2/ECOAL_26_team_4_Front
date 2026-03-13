@@ -11,6 +11,27 @@ function parseScore(raw, fallback) {
     }
     return fallback;
 }
+export function mapCriterionToAppKey(rawCriterion) {
+    const id = String(rawCriterion?.id_criteria ?? rawCriterion?.id ?? "");
+    const normalizedName = rawCriterion?.name?.toLowerCase?.() ?? "";
+    if (normalizedName.includes("dur"))
+        return "durability";
+    if (normalizedName.includes("price") || normalizedName.includes("value"))
+        return "value";
+    if (normalizedName.includes("rar"))
+        return "rarity";
+    if (normalizedName.includes("auto"))
+        return "autonomy";
+    if (id === "1")
+        return "durability";
+    if (id === "2")
+        return "value";
+    if (id === "3")
+        return "rarity";
+    if (id === "4")
+        return "autonomy";
+    return null;
+}
 export function mapApiUserToAppUser(user) {
     const avatarUrl = user.avatar_url ?? "";
     const avatarHash = user.avatar_hash ?? "";
@@ -39,8 +60,27 @@ export function mapApiCollectionToAppCollection(collection) {
 export function mapApiItemToLighter(item) {
     const criteria = item.criteria ?? [];
     const publicStatus = typeof item.status === "boolean" ? item.status : Boolean(item.status ?? true);
-    const categoryNames = [item.category1?.name, item.category1?.title, item.category2?.name, item.category2?.title].filter(Boolean);
+    const rawCategories = item.categories?.length
+        ? item.categories
+        : [item.category1, item.category2].filter(Boolean);
+    const categoryNames = rawCategories.map((category) => category?.name ?? category?.title).filter(Boolean);
     const collectionId = item.collection?.id ?? item.collection_id ?? null;
+    const criteriaValues = Object.fromEntries(criteria
+        .map((criterion) => [String(criterion?.id_criteria ?? criterion?.id ?? ""), criterion?.pivot?.score ?? criterion?.score ?? criterion?.value])
+        .filter(([id, value]) => Boolean(id) && value != null)
+        .map(([id, value]) => [id, parseScore(value, 0)]));
+    const baseCriteria = {
+        durability: 5,
+        value: 5,
+        rarity: 5,
+        autonomy: 5,
+    };
+    for (const criterion of criteria) {
+        const key = mapCriterionToAppKey(criterion);
+        if (!key)
+            continue;
+        baseCriteria[key] = parseScore(criterion?.pivot?.score ?? criterion?.score ?? criterion?.value, baseCriteria[key]);
+    }
     return {
         id: String(item.id),
         ownerId: String(item.collection?.user_id ?? item.collection_id ?? "0"),
@@ -51,14 +91,11 @@ export function mapApiItemToLighter(item) {
         country: item.category2?.name ?? item.category2?.title ?? "Unknown",
         mechanism: categoryNames[0] ?? "Unknown",
         period: categoryNames[1] ?? "Unknown",
+        categoryIds: rawCategories.map((category) => String(category?.id)).filter(Boolean),
         image: item.image_url?.trim() || "https://via.placeholder.com/512x512.png?text=Light+It",
         description: item.description?.trim() || "No description provided.",
         visibility: publicStatus ? "public" : "private",
-        criteria: {
-            durability: parseScore(criteria[0]?.pivot?.score ?? criteria[0]?.score, 5),
-            value: parseScore(criteria[1]?.pivot?.score ?? criteria[1]?.score, 5),
-            rarity: parseScore(criteria[2]?.pivot?.score ?? criteria[2]?.score, 5),
-            autonomy: parseScore(criteria[3]?.pivot?.score ?? criteria[3]?.score, 5),
-        },
+        criteria: baseCriteria,
+        criteriaValues,
     };
 }

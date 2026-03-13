@@ -6,6 +6,7 @@ import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter, mapApiUserToAppUser } from "../../api/mappers";
 import { resolveAvatarSource, storeAvatarLocally } from "../avatarStorage";
 import { DetailModal } from "../components/DetailModal";
+import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
 import { requiredText, toSafeLighterPatch, validateEmail, validateLighterForm, validatePassword, } from "../validation";
 
 const avatarPlaceholder = require("../../../assets/images/prototypes/profile/posts.png");
@@ -29,21 +30,8 @@ function toUserForm(user) {
         role: user.role,
     };
 }
-function toLighterForm(lighter) {
-    return {
-        name: lighter.name,
-        brand: lighter.brand,
-        year: String(lighter.year),
-        country: lighter.country,
-        mechanism: lighter.mechanism,
-        period: lighter.period,
-        image: lighter.image,
-        description: lighter.description,
-        visibility: lighter.visibility,
-    };
-}
 export function ProfileScreen({ shared }) {
-    const { role, setRole, users, setUsers, collections, setCollections, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, localAvatarMap, setLocalAvatarMap, } = shared;
+    const { role, setRole, users, setUsers, collections, setCollections, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, localAvatarMap, setLocalAvatarMap, categories, criteriaCatalog, } = shared;
     const [tab, setTab] = useState("collection");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedCollection, setSelectedCollection] = useState(null);
@@ -60,6 +48,8 @@ export function ProfileScreen({ shared }) {
     const [lighterErrors, setLighterErrors] = useState({});
     const currentUser = users.find((user) => user.id === currentUserId);
     const mostWanted = useMemo(() => lighters.filter((lighter) => lighter.ownerId !== currentUserId && lighter.visibility === "public"), [lighters, currentUserId]);
+    const mechanismCategories = useMemo(() => categories.filter((category) => !isPeriodCategory(category)), [categories]);
+    const periodCategories = useMemo(() => categories.filter((category) => isPeriodCategory(category)), [categories]);
     const myCollections = useMemo(() => collections.filter((collection) => {
         if (collection.ownerId === currentUserId) {
             return true;
@@ -227,24 +217,14 @@ export function ProfileScreen({ shared }) {
         const collectionForEditor = selectedCollection ?? collections.find((collection) => collection.id === lighter.collectionId) ?? null;
         setEditingLighter(lighter);
         setEditorCollection(collectionForEditor);
-        setLighterForm(toLighterForm(lighter));
+        setLighterForm(createItemFormState(lighter, criteriaCatalog));
         setLighterErrors({});
         setSelectedCollection(null);
     };
     const openCreateLighter = (collection) => {
         setEditingLighter(null);
         setEditorCollection(collection);
-        setLighterForm({
-            name: "",
-            brand: "",
-            year: `${new Date().getFullYear()}`,
-            country: "",
-            mechanism: "",
-            period: "",
-            image: "",
-            description: "",
-            visibility: "private",
-        });
+        setLighterForm(createItemFormState(null, criteriaCatalog));
         setLighterErrors({});
         setSelectedCollection(null);
     };
@@ -321,7 +301,10 @@ export function ProfileScreen({ shared }) {
     const saveLighter = async () => {
         if (!lighterForm)
             return;
-        const errors = validateLighterForm(lighterForm);
+        const errors = {
+            ...validateLighterForm(lighterForm),
+            ...validateItemMetadata(lighterForm, criteriaCatalog),
+        };
         setLighterErrors(errors);
         if (Object.keys(errors).length > 0)
             return;
@@ -330,14 +313,7 @@ export function ProfileScreen({ shared }) {
             return;
         }
         const patch = toSafeLighterPatch(lighterForm);
-        const payload = {
-            title: patch.name,
-            description: patch.description,
-            image_url: patch.image,
-            status: patch.visibility === "public",
-            category_ids: [1],
-            ...(editorCollection?.id ? { collection_id: Number(editorCollection.id) || editorCollection.id } : {}),
-        };
+        const payload = buildItemPayload(patch, lighterForm, editorCollection?.id ? { collection_id: Number(editorCollection.id) || editorCollection.id } : {});
         try {
             if (editingLighter) {
                 const updated = await apiRequest(`/items/${editingLighter.id}`, {
@@ -345,12 +321,19 @@ export function ProfileScreen({ shared }) {
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = {
+                await syncItemCriteriaScores({
+                    itemId: editingLighter.id,
+                    criteriaCatalog,
+                    criteriaValues: lighterForm.criteriaValues,
+                    authToken,
+                });
+                const mapped = applyCriteriaValuesToLighter({
                     ...mapApiItemToLighter(unwrapApiData(updated)),
                     ownerId: editingLighter.ownerId,
                     collectionId: editorCollection?.id ?? editingLighter.collectionId ?? "",
+                    categoryIds: lighterForm.categoryIds,
                     ...patch,
-                };
+                }, criteriaCatalog, lighterForm.criteriaValues);
                 setLighters((prev) => prev.map((lighter) => (lighter.id === editingLighter.id ? mapped : lighter)));
             }
             else {
@@ -359,12 +342,20 @@ export function ProfileScreen({ shared }) {
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = {
-                    ...mapApiItemToLighter(unwrapApiData(created)),
+                const createdItem = mapApiItemToLighter(unwrapApiData(created));
+                await syncItemCriteriaScores({
+                    itemId: createdItem.id,
+                    criteriaCatalog,
+                    criteriaValues: lighterForm.criteriaValues,
+                    authToken,
+                });
+                const mapped = applyCriteriaValuesToLighter({
+                    ...createdItem,
                     ownerId: currentUserId,
                     collectionId: editorCollection?.id ?? "",
+                    categoryIds: lighterForm.categoryIds,
                     ...patch,
-                };
+                }, criteriaCatalog, lighterForm.criteriaValues);
                 setLighters((prev) => [mapped, ...prev]);
                 if (editorCollection?.id) {
                     setCollections((prev) => prev.map((collection) => (collection.id === editorCollection.id
@@ -771,6 +762,88 @@ export function ProfileScreen({ shared }) {
                 }} multiline={field === "description"} style={{ color: colors.text, borderColor: lighterErrors[field] ? "#ef4444" : colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, minHeight: field === "description" ? 90 : undefined, textAlignVertical: field === "description" ? "top" : "center" }}/>
                     {lighterErrors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors[field]}</Text> : null}
                   </View>))}
+
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ color: colors.muted, marginBottom: 6 }}>Ignition Category</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {mechanismCategories.map((category) => {
+                    const selectedMechanismId = lighterForm.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id)) ?? "";
+                    const isSelected = selectedMechanismId === category.id;
+                    return (<Pressable key={category.id} onPress={() => {
+                            setLighterForm((prev) => {
+                                if (!prev)
+                                    return prev;
+                                const currentPeriodId = prev.categoryIds.find((id) => periodCategories.some((option) => option.id === id));
+                                const nextMechanismId = prev.categoryIds.includes(category.id) ? "" : category.id;
+                                const nextIds = [nextMechanismId, currentPeriodId].filter(Boolean);
+                                return { ...prev, categoryIds: nextIds };
+                            });
+                            setLighterErrors((prev) => ({ ...prev, categoryIds: "" }));
+                        }} style={{
+                            borderRadius: 999,
+                            borderWidth: 1,
+                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected ? colors.primary : "transparent",
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                        }}>
+                        <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
+                      </Pressable>);
+                })}
+                  </View>
+                  <Text style={{ color: colors.muted, marginTop: 12, marginBottom: 6 }}>Period Category</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {periodCategories.map((category) => {
+                    const selectedPeriodId = lighterForm.categoryIds.find((id) => periodCategories.some((option) => option.id === id)) ?? "";
+                    const isSelected = selectedPeriodId === category.id;
+                    return (<Pressable key={category.id} onPress={() => {
+                            setLighterForm((prev) => {
+                                if (!prev)
+                                    return prev;
+                                const currentMechanismId = prev.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id));
+                                const nextPeriodId = prev.categoryIds.includes(category.id) ? "" : category.id;
+                                const nextIds = [currentMechanismId, nextPeriodId].filter(Boolean);
+                                return { ...prev, categoryIds: nextIds };
+                            });
+                            setLighterErrors((prev) => ({ ...prev, categoryIds: "" }));
+                        }} style={{
+                            borderRadius: 999,
+                            borderWidth: 1,
+                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected ? colors.primary : "transparent",
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                        }}>
+                        <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
+                      </Pressable>);
+                })}
+                  </View>
+                  {lighterErrors.categoryIds ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors.categoryIds}</Text> : null}
+                </View>
+
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ color: colors.muted, marginBottom: 6 }}>Criteria Scores</Text>
+                  {criteriaCatalog.map((criterion) => {
+                    const errorKey = `criteria:${criterion.id}`;
+                    return (<View key={criterion.id} style={{ marginTop: 8 }}>
+                        <Text style={{ color: colors.text, marginBottom: 4 }}>{criterion.name}</Text>
+                        <TextInput value={lighterForm.criteriaValues[String(criterion.id)] ?? ""} onChangeText={(value) => {
+                            const sanitized = value.replace(/[^0-9]/g, "");
+                            setLighterForm((prev) => (prev
+                                ? {
+                                    ...prev,
+                                    criteriaValues: {
+                                        ...prev.criteriaValues,
+                                        [String(criterion.id)]: sanitized,
+                                    },
+                                }
+                                : prev));
+                            setLighterErrors((prev) => ({ ...prev, [errorKey]: "" }));
+                        }} keyboardType="number-pad" style={{ color: colors.text, borderColor: lighterErrors[errorKey] ? "#ef4444" : colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}/>
+                        {lighterErrors[errorKey] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors[errorKey]}</Text> : null}
+                      </View>);
+                })}
+                </View>
 
                 <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
                   <Pressable onPress={() => setLighterForm((prev) => (prev ? { ...prev, visibility: "private" } : prev))} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: lighterForm.visibility === "private" ? colors.primary : "transparent", paddingVertical: 10 }}>

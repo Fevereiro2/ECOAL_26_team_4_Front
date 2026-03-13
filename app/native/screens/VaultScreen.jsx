@@ -4,44 +4,21 @@ import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Tex
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter } from "../../api/mappers";
 import { DetailModal } from "../components/DetailModal";
+import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
 import { styles } from "../styles";
 import { toSafeLighterPatch, validateLighterForm } from "../validation";
-function toFormState(lighter) {
-    if (!lighter) {
-        return {
-            name: "",
-            brand: "",
-            year: `${new Date().getFullYear()}`,
-            country: "",
-            mechanism: "",
-            period: "",
-            image: "",
-            description: "",
-            visibility: "private",
-        };
-    }
-    return {
-        name: lighter.name,
-        brand: lighter.brand,
-        year: String(lighter.year),
-        country: lighter.country,
-        mechanism: lighter.mechanism,
-        period: lighter.period,
-        image: lighter.image,
-        description: lighter.description,
-        visibility: lighter.visibility,
-    };
-}
 export function VaultScreen({ shared }) {
-    const { role, colors, lighters, setLighters, currentUserId, authToken, refreshAppData } = shared;
+    const { role, colors, lighters, setLighters, currentUserId, authToken, refreshAppData, categories, criteriaCatalog, } = shared;
     const [query, setQuery] = useState("");
     const [selected, setSelected] = useState(null);
     const [editing, setEditing] = useState(null);
     const [formOpen, setFormOpen] = useState(false);
-    const [formData, setFormData] = useState(toFormState());
+    const [formData, setFormData] = useState(createItemFormState(null, criteriaCatalog));
     const [errors, setErrors] = useState({});
     const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId &&
         lighter.name.toLowerCase().includes(query.toLowerCase())), [currentUserId, lighters, query]);
+    const mechanismCategories = useMemo(() => categories.filter((category) => !isPeriodCategory(category)), [categories]);
+    const periodCategories = useMemo(() => categories.filter((category) => isPeriodCategory(category)), [categories]);
     const avgValue = myLighters.length
         ? (myLighters.reduce((acc, lighter) => acc + lighter.criteria.value, 0) / myLighters.length).toFixed(1)
         : "0";
@@ -58,18 +35,21 @@ export function VaultScreen({ shared }) {
     }
     const openCreateForm = () => {
         setEditing(null);
-        setFormData(toFormState());
+        setFormData(createItemFormState(null, criteriaCatalog));
         setErrors({});
         setFormOpen(true);
     };
     const openEditForm = (lighter) => {
         setEditing(lighter);
-        setFormData(toFormState(lighter));
+        setFormData(createItemFormState(lighter, criteriaCatalog));
         setErrors({});
         setFormOpen(true);
     };
     const saveForm = async () => {
-        const formErrors = validateLighterForm(formData);
+        const formErrors = {
+            ...validateLighterForm(formData),
+            ...validateItemMetadata(formData, criteriaCatalog),
+        };
         setErrors(formErrors);
         if (Object.keys(formErrors).length > 0)
             return;
@@ -78,30 +58,48 @@ export function VaultScreen({ shared }) {
             return;
         }
         const patch = toSafeLighterPatch(formData);
-        const payload = {
-            title: patch.name,
-            description: patch.description,
-            image_url: patch.image,
-            status: patch.visibility === "public",
-            category_ids: [1],
-        };
         try {
             if (editing) {
+                const payload = buildItemPayload(patch, formData);
                 const updated = await apiRequest(`/items/${editing.id}`, {
                     method: "PUT",
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(updated)), ownerId: currentUserId, ...patch };
+                await syncItemCriteriaScores({
+                    itemId: editing.id,
+                    criteriaCatalog,
+                    criteriaValues: formData.criteriaValues,
+                    authToken,
+                });
+                const mapped = applyCriteriaValuesToLighter({
+                    ...mapApiItemToLighter(unwrapApiData(updated)),
+                    ownerId: currentUserId,
+                    categoryIds: formData.categoryIds,
+                    ...patch,
+                }, criteriaCatalog, formData.criteriaValues);
                 setLighters((prev) => prev.map((lighter) => (lighter.id === editing.id ? mapped : lighter)));
             }
             else {
+                const payload = buildItemPayload(patch, formData);
                 const created = await apiRequest("/items", {
                     method: "POST",
                     token: authToken,
                     body: JSON.stringify(payload),
                 });
-                const mapped = { ...mapApiItemToLighter(unwrapApiData(created)), ownerId: currentUserId, ...patch };
+                const createdItem = mapApiItemToLighter(unwrapApiData(created));
+                await syncItemCriteriaScores({
+                    itemId: createdItem.id,
+                    criteriaCatalog,
+                    criteriaValues: formData.criteriaValues,
+                    authToken,
+                });
+                const mapped = applyCriteriaValuesToLighter({
+                    ...createdItem,
+                    ownerId: currentUserId,
+                    categoryIds: formData.categoryIds,
+                    ...patch,
+                }, criteriaCatalog, formData.criteriaValues);
                 setLighters((prev) => [mapped, ...prev]);
             }
             setFormOpen(false);
@@ -227,6 +225,89 @@ export function VaultScreen({ shared }) {
             }}/>
                 {errors[field] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors[field]}</Text> : null}
               </View>))}
+
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.muted, marginBottom: 6 }}>Ignition Category</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {mechanismCategories.map((category) => {
+                const selectedMechanismId = formData.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id)) ?? "";
+                const isSelected = selectedMechanismId === category.id;
+                return (<Pressable key={category.id} onPress={() => {
+                        setFormData((prev) => {
+                            const currentPeriodId = prev.categoryIds.find((id) => periodCategories.some((option) => option.id === id));
+                            const nextMechanismId = prev.categoryIds.includes(category.id) ? "" : category.id;
+                            const nextIds = [nextMechanismId, currentPeriodId].filter(Boolean);
+                            return { ...prev, categoryIds: nextIds };
+                        });
+                        setErrors((prev) => ({ ...prev, categoryIds: "" }));
+                    }} style={{
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected ? colors.primary : "transparent",
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                    }}>
+                      <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
+                    </Pressable>);
+            })}
+              </View>
+              <Text style={{ color: colors.muted, marginTop: 12, marginBottom: 6 }}>Period Category</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {periodCategories.map((category) => {
+                const selectedPeriodId = formData.categoryIds.find((id) => periodCategories.some((option) => option.id === id)) ?? "";
+                const isSelected = selectedPeriodId === category.id;
+                return (<Pressable key={category.id} onPress={() => {
+                        setFormData((prev) => {
+                            const currentMechanismId = prev.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id));
+                            const nextPeriodId = prev.categoryIds.includes(category.id) ? "" : category.id;
+                            const nextIds = [currentMechanismId, nextPeriodId].filter(Boolean);
+                            return { ...prev, categoryIds: nextIds };
+                        });
+                        setErrors((prev) => ({ ...prev, categoryIds: "" }));
+                    }} style={{
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected ? colors.primary : "transparent",
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                    }}>
+                      <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
+                    </Pressable>);
+            })}
+              </View>
+              {errors.categoryIds ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors.categoryIds}</Text> : null}
+            </View>
+
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.muted, marginBottom: 6 }}>Criteria Scores</Text>
+              {criteriaCatalog.map((criterion) => {
+                const errorKey = `criteria:${criterion.id}`;
+                return (<View key={criterion.id} style={{ marginTop: 8 }}>
+                    <Text style={{ color: colors.text, marginBottom: 4 }}>{criterion.name}</Text>
+                    <TextInput value={formData.criteriaValues[String(criterion.id)] ?? ""} onChangeText={(value) => {
+                        const sanitized = value.replace(/[^0-9]/g, "");
+                        setFormData((prev) => ({
+                            ...prev,
+                            criteriaValues: {
+                                ...prev.criteriaValues,
+                                [String(criterion.id)]: sanitized,
+                            },
+                        }));
+                        setErrors((prev) => ({ ...prev, [errorKey]: "" }));
+                    }} keyboardType="number-pad" style={{
+                        color: colors.text,
+                        borderColor: errors[errorKey] ? "#ef4444" : colors.border,
+                        borderWidth: 1,
+                        borderRadius: 10,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                    }}/>
+                    {errors[errorKey] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors[errorKey]}</Text> : null}
+                  </View>);
+            })}
+            </View>
 
             <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
               <Pressable onPress={() => setFormData((prev) => ({ ...prev, visibility: "private" }))} style={{
