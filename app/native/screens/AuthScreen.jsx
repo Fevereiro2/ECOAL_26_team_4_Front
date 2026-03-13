@@ -218,7 +218,7 @@ export function AuthScreen({ colors, statusMessage, onLogin, onRegister, onConti
                                     <BrandButton colors={colors} onPress={() => openPopup("login")} style={{ flex: width < 480 ? undefined : 1 }}>
                                         Open login
                                     </BrandButton>
-                                    <BrandButton colors={colors} variant="ghost" onPress={onContinueGuest} style={{ flex: width < 480 ? undefined : 1 }}>
+                                    <BrandButton colors={colors} variant="secondary" onPress={onContinueGuest} style={{ flex: width < 480 ? undefined : 1 }}>
                                         Continue as guest
                                     </BrandButton>
                                 </View>

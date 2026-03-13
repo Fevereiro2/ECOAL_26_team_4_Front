@@ -523,12 +523,12 @@ export function ProfileScreen({ shared }) {
                   <Text style={{ color: colors.primary, textTransform: "capitalize" }}>{user.role}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 12 }}>
-                  <Pressable onPress={() => openUserEditor(user)}>
+                  <IconCircleButton colors={colors} onPress={() => openUserEditor(user)}>
                     <SquarePen color={colors.text} size={18}/>
-                  </Pressable>
-                  <Pressable onPress={() => deleteUser(user.id)}>
+                  </IconCircleButton>
+                  <IconCircleButton colors={colors} danger onPress={() => deleteUser(user.id)}>
                     <Trash2 color="#ef4444" size={18}/>
-                  </Pressable>
+                  </IconCircleButton>
                 </View>
               </View>))}
 
@@ -540,17 +540,17 @@ export function ProfileScreen({ shared }) {
                   <Text style={{ color: colors.primary }}>Owner: {lighter.ownerId}</Text>
                 </View>
                 <View style={{ flexDirection: "row", gap: 12 }}>
-                  <Pressable onPress={() => openLighterEditor(lighter)}>
+                  <IconCircleButton colors={colors} onPress={() => openLighterEditor(lighter)}>
                     <SquarePen color={colors.text} size={18}/>
-                  </Pressable>
-                  <Pressable onPress={() => deleteLighter(lighter.id)}>
+                  </IconCircleButton>
+                  <IconCircleButton colors={colors} danger onPress={() => deleteLighter(lighter.id)}>
                     <Trash2 color="#ef4444" size={18}/>
-                  </Pressable>
+                  </IconCircleButton>
                 </View>
               </View>))}
           </>) : null}
 
-        {role !== "guest" ? (<BrandButton colors={colors} variant="ghost" onPress={confirmLogout} style={{ marginTop: 12, borderColor: "#ef4444" }} textStyle={{ color: "#ef4444" }}>
+        {role !== "guest" ? (<BrandButton colors={colors} variant="danger" onPress={confirmLogout} style={{ marginTop: 12 }}>
             Logout
           </BrandButton>) : null}
       </ScrollView>
@@ -584,20 +584,16 @@ export function ProfileScreen({ shared }) {
                     The app stores the selected photo locally, generates an `avatar_hash`, and only sends that hash to the API.
                   </Text>
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Pressable onPress={pickPhotoFromLibrary} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                      <Text style={{ textAlign: "center", color: "#111", fontWeight: "600" }}>
-                        {pickerBusy ? "Opening..." : "Choose from Gallery"}
-                      </Text>
-                    </Pressable>
-                    <Pressable onPress={takePhotoWithCamera} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                      <Text style={{ textAlign: "center", color: "#111", fontWeight: "600" }}>
-                        {pickerBusy ? "Opening..." : "Take Photo"}
-                      </Text>
-                    </Pressable>
+                    <BrandButton colors={colors} variant="secondary" onPress={pickPhotoFromLibrary} style={{ flex: 1 }}>
+                      {pickerBusy ? "Opening..." : "Choose from gallery"}
+                    </BrandButton>
+                    <BrandButton colors={colors} variant="secondary" onPress={takePhotoWithCamera} style={{ flex: 1 }}>
+                      {pickerBusy ? "Opening..." : "Take photo"}
+                    </BrandButton>
                   </View>
-                  <Pressable onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatarHash: "", avatarUrl: "" } : prev))} style={{ marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: "#d4d4d8", paddingVertical: 10, backgroundColor: "#fff" }}>
-                    <Text style={{ textAlign: "center", color: "#52525b", fontWeight: "600" }}>Use Default Photo</Text>
-                  </Pressable>
+                  <BrandButton colors={colors} variant="ghost" onPress={() => setSettingsForm((prev) => (prev ? { ...prev, avatarHash: "", avatarUrl: "" } : prev))} style={{ marginTop: 8 }}>
+                    Use default photo
+                  </BrandButton>
                   <Text style={{ color: "#71717a", marginTop: 8 }}>
                     {settingsForm.avatarHash
                         ? `avatar_hash: ${settingsForm.avatarHash}`
@@ -611,15 +607,13 @@ export function ProfileScreen({ shared }) {
                   <Image source={settingsAvatarSource.uri ? { uri: settingsAvatarSource.uri } : avatarPlaceholder} style={{ width: 104, height: 104, borderRadius: 999, borderWidth: 2, borderColor: "#d4d4d8" }}/>
                 </View>
 
-                <Pressable onPress={saveSettings} style={{ marginTop: 14, backgroundColor: "#b8121c", borderRadius: 999, paddingVertical: 13 }}>
-                  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "800", fontSize: 18 }}>Save Profile</Text>
-                </Pressable>
+                <BrandButton colors={colors} onPress={saveSettings} style={{ marginTop: 14 }}>
+                  Save profile
+                </BrandButton>
 
-                <Pressable onPress={toggleTheme} style={{ marginTop: 10, borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 999, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>
-                    {theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
-                  </Text>
-                </Pressable>
+                <BrandButton colors={colors} variant="secondary" onPress={toggleTheme} style={{ marginTop: 10 }}>
+                  {theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+                </BrandButton>
               </>) : null}
           </ScrollView>
         </View>
@@ -634,9 +628,9 @@ export function ProfileScreen({ shared }) {
                 <Text style={{ color: colors.text, fontSize: 28, fontWeight: "800" }}>{selectedCollection.title}</Text>
                 <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 20 }}>{selectedCollection.description}</Text>
 
-                <Pressable onPress={() => openCreateLighter(selectedCollection)} style={{ marginTop: 14, borderRadius: 999, backgroundColor: colors.primary, paddingVertical: 13 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "900" }}>Create Item In This Collection</Text>
-                </Pressable>
+                <BrandButton colors={colors} onPress={() => openCreateLighter(selectedCollection)} style={{ marginTop: 14 }}>
+                  Create item in this collection
+                </BrandButton>
 
                 <Text style={{ color: colors.text, fontSize: 20, fontWeight: "800", marginTop: 18 }}>Items</Text>
                 {selectedCollectionItems.length === 0 ? (<View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 16, marginTop: 10 }}>
@@ -656,21 +650,21 @@ export function ProfileScreen({ shared }) {
                       </View>
                     </Pressable>
                     <View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
-                      <Pressable onPress={() => openLighterEditor(lighter)}>
+                      <IconCircleButton colors={colors} onPress={() => openLighterEditor(lighter)}>
                         <SquarePen color={colors.text} size={18}/>
-                      </Pressable>
-                      <Pressable onPress={() => Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
+                      </IconCircleButton>
+                      <IconCircleButton colors={colors} danger onPress={() => Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
                             { text: "Cancel", style: "cancel" },
                             { text: "Delete", style: "destructive", onPress: () => deleteLighter(lighter.id) },
                         ])}>
                         <Trash2 color="#ef4444" size={18}/>
-                      </Pressable>
+                      </IconCircleButton>
                     </View>
                   </View>))}
 
-                <Pressable onPress={() => setSelectedCollection(null)} style={{ marginTop: 16 }}>
-                  <Text style={{ textAlign: "center", color: colors.muted }}>Close</Text>
-                </Pressable>
+                <BrandButton colors={colors} variant="secondary" onPress={() => setSelectedCollection(null)} style={{ marginTop: 16 }}>
+                  Close
+                </BrandButton>
               </>) : null}
             </ScrollView>
           </View>
@@ -697,19 +691,15 @@ export function ProfileScreen({ shared }) {
 
                 <Text style={{ color: colors.muted, marginTop: 10, marginBottom: 4 }}>Role</Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
-                  {["guest", "user", "admin"].map((candidateRole) => (<Pressable key={candidateRole} onPress={() => setUserForm((prev) => (prev ? { ...prev, role: candidateRole } : prev))} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, backgroundColor: userForm.role === candidateRole ? colors.primary : "transparent" }}>
-                      <Text style={{ textAlign: "center", color: userForm.role === candidateRole ? "#111" : colors.text }}>
-                        {candidateRole}
-                      </Text>
-                    </Pressable>))}
+                  {["guest", "user", "admin"].map((candidateRole) => (<SelectionChip key={candidateRole} colors={colors} label={candidateRole} selected={userForm.role === candidateRole} onPress={() => setUserForm((prev) => (prev ? { ...prev, role: candidateRole } : prev))} style={{ flex: 1 }}/>))}
                 </View>
 
-                <Pressable onPress={saveUser} style={{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>Save User</Text>
-                </Pressable>
-                <Pressable onPress={() => setEditingUser(null)} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Cancel</Text>
-                </Pressable>
+                <BrandButton colors={colors} onPress={saveUser} style={{ marginTop: 12 }}>
+                  Save user
+                </BrandButton>
+                <BrandButton colors={colors} variant="secondary" onPress={() => setEditingUser(null)} style={{ marginTop: 8 }}>
+                  Cancel
+                </BrandButton>
               </>) : null}
           </ScrollView>
         </View>
@@ -747,7 +737,7 @@ export function ProfileScreen({ shared }) {
                     {mechanismCategories.map((category) => {
                     const selectedMechanismId = lighterForm.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id)) ?? "";
                     const isSelected = selectedMechanismId === category.id;
-                    return (<Pressable key={category.id} onPress={() => {
+                    return (<SelectionChip key={category.id} colors={colors} label={category.title} selected={isSelected} onPress={() => {
                             setLighterForm((prev) => {
                                 if (!prev)
                                     return prev;
@@ -757,16 +747,7 @@ export function ProfileScreen({ shared }) {
                                 return { ...prev, categoryIds: nextIds };
                             });
                             setLighterErrors((prev) => ({ ...prev, categoryIds: "" }));
-                        }} style={{
-                            borderRadius: 999,
-                            borderWidth: 1,
-                            borderColor: isSelected ? colors.primary : colors.border,
-                            backgroundColor: isSelected ? colors.primary : "transparent",
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                        }}>
-                        <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
-                      </Pressable>);
+                        }}/>);
                 })}
                   </View>
                   <Text style={{ color: colors.muted, marginTop: 12, marginBottom: 6 }}>Period Category</Text>
@@ -774,7 +755,7 @@ export function ProfileScreen({ shared }) {
                     {periodCategories.map((category) => {
                     const selectedPeriodId = lighterForm.categoryIds.find((id) => periodCategories.some((option) => option.id === id)) ?? "";
                     const isSelected = selectedPeriodId === category.id;
-                    return (<Pressable key={category.id} onPress={() => {
+                    return (<SelectionChip key={category.id} colors={colors} label={category.title} selected={isSelected} onPress={() => {
                             setLighterForm((prev) => {
                                 if (!prev)
                                     return prev;
@@ -784,16 +765,7 @@ export function ProfileScreen({ shared }) {
                                 return { ...prev, categoryIds: nextIds };
                             });
                             setLighterErrors((prev) => ({ ...prev, categoryIds: "" }));
-                        }} style={{
-                            borderRadius: 999,
-                            borderWidth: 1,
-                            borderColor: isSelected ? colors.primary : colors.border,
-                            backgroundColor: isSelected ? colors.primary : "transparent",
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                        }}>
-                        <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
-                      </Pressable>);
+                        }}/>);
                 })}
                   </View>
                   {lighterErrors.categoryIds ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors.categoryIds}</Text> : null}
@@ -821,7 +793,7 @@ export function ProfileScreen({ shared }) {
                             const selectedValue = lighterForm.criteriaValues[String(criterion.id)] ?? "1";
                             const isSelected = selectedValue === option.value;
                             const visuals = getCriterionLevelVisuals(option.value, isSelected, colors);
-                            return (<Pressable key={option.value} onPress={() => {
+                            return (<SelectionChip key={option.value} colors={colors} label={`${option.value} ${option.label}`} selected={isSelected} compact onPress={() => {
                                     setLighterForm((prev) => (prev
                                         ? {
                                             ...prev,
@@ -832,20 +804,7 @@ export function ProfileScreen({ shared }) {
                                         }
                                         : prev));
                                     setLighterErrors((prev) => ({ ...prev, [errorKey]: "" }));
-                                }} style={{
-                                    flex: 1,
-                                    borderRadius: 14,
-                                    borderWidth: 1,
-                                    borderColor: visuals.borderColor,
-                                    backgroundColor: visuals.backgroundColor,
-                                    paddingVertical: 12,
-                                    paddingHorizontal: 8,
-                                }}>
-                                  <Text style={{ textAlign: "center", color: visuals.badgeColor, fontSize: 18, fontWeight: "900" }}>{option.value}</Text>
-                                  <Text style={{ textAlign: "center", color: visuals.textColor, fontWeight: "700", marginTop: 2 }}>
-                                    {option.label}
-                                  </Text>
-                                </Pressable>);
+                                }} style={{ flex: 1, borderColor: visuals.borderColor, backgroundColor: visuals.backgroundColor }}/>);
                         })}
                           </View>
                         </View>
@@ -855,24 +814,16 @@ export function ProfileScreen({ shared }) {
                 </View>
 
                 <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
-                  <Pressable onPress={() => setLighterForm((prev) => (prev ? { ...prev, visibility: "private" } : prev))} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: lighterForm.visibility === "private" ? colors.primary : "transparent", paddingVertical: 10 }}>
-                    <Text style={{ textAlign: "center", color: lighterForm.visibility === "private" ? "#111" : colors.text }}>
-                      Private
-                    </Text>
-                  </Pressable>
-                  <Pressable onPress={() => setLighterForm((prev) => (prev ? { ...prev, visibility: "public" } : prev))} style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: lighterForm.visibility === "public" ? colors.primary : "transparent", paddingVertical: 10 }}>
-                    <Text style={{ textAlign: "center", color: lighterForm.visibility === "public" ? "#111" : colors.text }}>
-                      Public
-                    </Text>
-                  </Pressable>
+                  <SelectionChip colors={colors} label="Private" selected={lighterForm.visibility === "private"} onPress={() => setLighterForm((prev) => (prev ? { ...prev, visibility: "private" } : prev))} style={{ flex: 1 }}/>
+                  <SelectionChip colors={colors} label="Public" selected={lighterForm.visibility === "public"} onPress={() => setLighterForm((prev) => (prev ? { ...prev, visibility: "public" } : prev))} style={{ flex: 1 }}/>
                 </View>
 
-                <Pressable onPress={saveLighter} style={{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: "#111", fontWeight: "700" }}>Save Product</Text>
-                </Pressable>
-                <Pressable onPress={closeLighterEditor} style={{ marginTop: 8, backgroundColor: colors.border, borderRadius: 10, paddingVertical: 12 }}>
-                  <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Cancel</Text>
-                </Pressable>
+                <BrandButton colors={colors} onPress={saveLighter} style={{ marginTop: 12 }}>
+                  Save product
+                </BrandButton>
+                <BrandButton colors={colors} variant="secondary" onPress={closeLighterEditor} style={{ marginTop: 8 }}>
+                  Cancel
+                </BrandButton>
               </>) : null}
           </ScrollView>
         </View>

@@ -150,7 +150,7 @@ export function NewCollectionScreen({ shared }) {
 
         <BrandButton
           colors={colors}
-          variant="ghost"
+          variant="secondary"
           onPress={() => {
             setFormData(createEmptyForm());
             setErrors({});
