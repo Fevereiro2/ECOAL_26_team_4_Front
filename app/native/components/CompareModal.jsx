@@ -1,4 +1,6 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Text, View } from "react-native";
+import { getEyebrowStyle, getPanelStyle } from "../artDirection";
+import { BrandButton } from "./BrandButton";
 import { styles } from "../styles";
 export function CompareModal({ item, onClose, colors, lighters }) {
     if (!item)
@@ -12,8 +14,8 @@ export function CompareModal({ item, onClose, colors, lighters }) {
     ];
     return (<Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <View style={[styles.modalCard, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-          <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", letterSpacing: 1.3, textTransform: "uppercase", marginBottom: 4 }}>
+        <View style={[styles.modalCard, getPanelStyle(colors, { radius: 30, padding: 18 }), { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+          <Text style={[getEyebrowStyle(colors), { marginBottom: 4 }]}>
             Head to head
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Comparison</Text>
@@ -26,9 +28,9 @@ export function CompareModal({ item, onClose, colors, lighters }) {
               </View>
               <Text style={{ color: colors.accent, width: 30, textAlign: "center", fontWeight: "900" }}>{row.b}</Text>
             </View>))}
-          <Pressable onPress={onClose} style={[styles.closeBtn, { backgroundColor: colors.primary }]}>
-            <Text style={styles.actionBtnText}>Close</Text>
-          </Pressable>
+          <BrandButton colors={colors} onPress={onClose}>
+            Close
+          </BrandButton>
         </View>
       </View>
     </Modal>);
