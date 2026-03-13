@@ -35,6 +35,7 @@ export function mapCriterionToAppKey(rawCriterion) {
 export function mapApiUserToAppUser(user) {
     const avatarUrl = user.avatar_url ?? "";
     const avatarHash = user.avatar_hash ?? "";
+    const nationality = user.nationality ?? user.bio ?? user.collection?.description ?? "";
     return {
         id: String(user.id),
         name: user.name,
@@ -44,7 +45,8 @@ export function mapApiUserToAppUser(user) {
         avatar: avatarUrl,
         avatarUrl,
         avatarHash,
-        bio: user.bio ?? user.nationality ?? user.collection?.description ?? "",
+        bio: nationality,
+        nationality,
     };
 }
 export function mapApiCollectionToAppCollection(collection) {

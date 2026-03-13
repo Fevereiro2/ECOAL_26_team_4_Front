@@ -1,6 +1,50 @@
 import { apiRequest } from "../api/client";
 import { mapCriterionToAppKey } from "../api/mappers";
 
+export const criterionLevelOptions = [
+    { value: "1", label: "Low" },
+    { value: "2", label: "Medium" },
+    { value: "3", label: "High" },
+];
+
+export function getCriterionLevelVisuals(value, isSelected, colors) {
+    const toneMap = {
+        "1": {
+            border: colors.border,
+            background: colors.panel,
+            text: colors.muted,
+            badge: "#8b6b4c",
+        },
+        "2": {
+            border: colors.accent,
+            background: `${colors.accent}22`,
+            text: colors.accent,
+            badge: colors.accent,
+        },
+        "3": {
+            border: colors.primary,
+            background: `${colors.primary}22`,
+            text: colors.primary,
+            badge: colors.primary,
+        },
+    };
+    const tone = toneMap[value] ?? toneMap["1"];
+    if (isSelected) {
+        return {
+            borderColor: tone.border,
+            backgroundColor: tone.background,
+            textColor: tone.text,
+            badgeColor: tone.badge,
+        };
+    }
+    return {
+        borderColor: colors.border,
+        backgroundColor: colors.panel,
+        textColor: colors.text,
+        badgeColor: colors.muted,
+    };
+}
+
 export function isPeriodCategory(category) {
     const title = category?.title?.toLowerCase?.() ?? "";
     return title.includes("antique") || title.includes("vintage") || title.includes("modern");
@@ -15,7 +59,8 @@ export function createItemFormState(lighter, criteriaCatalog = []) {
         });
         const existingValue = lighter?.criteriaValues?.[criterionId];
         const fallbackValue = criterionKey ? lighter?.criteria?.[criterionKey] : undefined;
-        return [criterionId, String(existingValue ?? fallbackValue ?? 0)];
+        const normalizedValue = String(existingValue ?? fallbackValue ?? 1);
+        return [criterionId, criterionLevelOptions.some((option) => option.value === normalizedValue) ? normalizedValue : "1"];
     }));
     return {
         name: lighter?.name ?? "",
@@ -47,9 +92,8 @@ export function validateItemMetadata(formData, criteriaCatalog = []) {
             errors[`criteria:${criterionId}`] = `${criterion.name} is required.`;
             continue;
         }
-        const numericValue = Number(rawValue);
-        if (!Number.isFinite(numericValue) || numericValue < 0 || numericValue > 10) {
-            errors[`criteria:${criterionId}`] = `${criterion.name} must be between 0 and 10.`;
+        if (!criterionLevelOptions.some((option) => option.value === String(rawValue))) {
+            errors[`criteria:${criterionId}`] = `${criterion.name} must be 1, 2 or 3.`;
         }
     }
     return errors;
