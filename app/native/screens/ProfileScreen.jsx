@@ -1,12 +1,16 @@
 import * as ImagePicker from "expo-image-picker";
 import { SquarePen, Trash2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter, mapApiUserToAppUser } from "../../api/mappers";
+import { getBodyTextStyle, getEyebrowStyle, getPageShellStyle, getPanelStyle } from "../artDirection";
 import { resolveAvatarSource, storeAvatarLocally } from "../avatarStorage";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { BrandButton, IconCircleButton, SelectionChip } from "../components/BrandButton";
 import { DetailModal } from "../components/DetailModal";
-import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
+import { TopBar } from "../components/TopBar";
+import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, criterionLevelOptions, getCriterionLevelVisuals, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
 import { requiredText, toSafeLighterPatch, validateEmail, validateLighterForm, validatePassword, } from "../validation";
 
 const avatarPlaceholder = require("../../../assets/images/prototypes/profile/posts.png");
@@ -32,7 +36,6 @@ function toUserForm(user) {
 }
 export function ProfileScreen({ shared }) {
     const { role, setRole, users, setUsers, collections, setCollections, lighters, setLighters, currentUserId, colors, theme, toggleTheme, authToken, refreshAppData, logout, localAvatarMap, setLocalAvatarMap, categories, criteriaCatalog, } = shared;
-    const [tab, setTab] = useState("collection");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedCollection, setSelectedCollection] = useState(null);
     const [settingsForm, setSettingsForm] = useState(null);
@@ -46,8 +49,8 @@ export function ProfileScreen({ shared }) {
     const [lighterForm, setLighterForm] = useState(null);
     const [userErrors, setUserErrors] = useState({});
     const [lighterErrors, setLighterErrors] = useState({});
+    const { width } = useWindowDimensions();
     const currentUser = users.find((user) => user.id === currentUserId);
-    const mostWanted = useMemo(() => lighters.filter((lighter) => lighter.ownerId !== currentUserId && lighter.visibility === "public"), [lighters, currentUserId]);
     const mechanismCategories = useMemo(() => categories.filter((category) => !isPeriodCategory(category)), [categories]);
     const periodCategories = useMemo(() => categories.filter((category) => isPeriodCategory(category)), [categories]);
     const myCollections = useMemo(() => collections.filter((collection) => {
@@ -65,10 +68,10 @@ export function ProfileScreen({ shared }) {
         }
         return lighters.filter((lighter) => lighter.collectionId === selectedCollection.id);
     }, [lighters, selectedCollection]);
-    const listToRender = tab === "collection" ? myCollections : mostWanted;
     const roleText = role === "guest" ? "Guest" : role === "admin" ? "Admin Vault" : "Collector";
     const displayName = currentUser?.name ?? roleText;
-    const displayBio = currentUser?.bio?.trim() || "Collector of Vintage and Rare Lighters";
+    const displayBio = currentUser?.nationality?.trim() || currentUser?.bio?.trim() || "Collector of Vintage and Rare Lighters";
+    const ownedItemsCount = lighters.filter((lighter) => lighter.ownerId === currentUserId).length;
     const currentAvatarSource = resolveAvatarSource(currentUser, localAvatarMap);
     const settingsAvatarSource = settingsForm
         ? resolveAvatarSource({
@@ -82,7 +85,7 @@ export function ProfileScreen({ shared }) {
             email: currentUser?.email ?? "",
             avatarHash: currentUser?.avatarHash ?? "",
             avatarUrl: currentUser?.avatarUrl ?? currentUser?.avatar ?? "",
-            bio: currentUser?.bio ?? "Collector of Vintage and Rare Lighters",
+            nationality: currentUser?.nationality ?? currentUser?.bio ?? "",
             password: "",
         });
         setSettingsErrors({});
@@ -116,7 +119,7 @@ export function ProfileScreen({ shared }) {
                     email: currentUser.email?.trim().toLowerCase() ?? "",
                     ...(settingsForm.password.trim() ? { password: settingsForm.password } : {}),
                     avatar_hash: settingsForm.avatarHash.trim() || null,
-                    nationality: settingsForm.bio.trim(),
+                    nationality: settingsForm.nationality.trim(),
                 }),
             });
             const apiUser = mapApiUserToAppUser(unwrapApiData(updated));
@@ -126,7 +129,8 @@ export function ProfileScreen({ shared }) {
                 ...currentUser,
                 ...apiUser,
                 name: settingsForm.name.trim(),
-                bio: settingsForm.bio.trim(),
+                bio: settingsForm.nationality.trim(),
+                nationality: settingsForm.nationality.trim(),
                 avatar: avatarUrl,
                 avatarUrl,
                 avatarHash,
@@ -442,64 +446,60 @@ export function ProfileScreen({ shared }) {
         });
     };
     return (<SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View style={{ marginHorizontal: -16, marginTop: -16, backgroundColor: colors.panelSoft, borderBottomWidth: 1, borderBottomColor: colors.border, padding: 18, paddingBottom: 64 }}>
-          <View style={{ alignItems: "flex-end" }}>
-            <Pressable onPress={openSettings}>
-              <Text style={{ color: colors.accent, fontSize: 28, fontWeight: "800", letterSpacing: 0.4 }}>Settings</Text>
-            </Pressable>
+      <AmbientBackground colors={colors}/>
+      <ScrollView contentContainerStyle={getPageShellStyle(width)}>
+        <TopBar colors={colors} activeRoute="Profile" onToggleTheme={toggleTheme} compact={width < 700}/>
+
+        <View style={[getPanelStyle(colors, { radius: 30, padding: 22 }), { overflow: "hidden" }]}>
+          <View style={{ flexDirection: width >= 700 ? "row" : "column", gap: 18 }}>
+            <View style={{ flexDirection: width >= 700 ? "row" : "column", alignItems: width >= 700 ? "center" : "flex-start", gap: 18, flex: 1 }}>
+              <Image source={currentAvatarSource.uri ? { uri: currentAvatarSource.uri } : avatarPlaceholder} style={{ width: 96, height: 96, borderRadius: 28, borderWidth: 2, borderColor: colors.accent }}/>
+              <View style={{ flex: 1 }}>
+                <Text style={getEyebrowStyle(colors)}>Profile</Text>
+                <Text style={{ color: colors.text, fontSize: width < 420 ? 36 : 44, fontWeight: "700", lineHeight: width < 420 ? 38 : 46, maxWidth: "100%" }}>
+                  {displayName}
+                </Text>
+                <Text style={[getBodyTextStyle(colors, true), { fontSize: 16, marginTop: 10, maxWidth: width >= 700 ? "82%" : "100%" }]}>
+                  {displayBio}
+                </Text>
+              </View>
+            </View>
+
+            <BrandButton colors={colors} variant="ghost" onPress={openSettings} style={{ alignSelf: width >= 700 ? "flex-start" : "stretch" }}>
+              Settings
+            </BrandButton>
           </View>
 
-          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <Image source={currentAvatarSource.uri ? { uri: currentAvatarSource.uri } : avatarPlaceholder} style={{ width: 160, height: 160, borderRadius: 999, borderWidth: 3, borderColor: colors.accent, marginBottom: -78 }}/>
-            <Text style={{
-            color: colors.text,
-            fontSize: 44,
-            fontWeight: "900",
-            lineHeight: 46,
-            textAlign: "right",
-            maxWidth: "56%",
-            flexShrink: 1,
-        }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {displayName}
-            </Text>
+          <View style={{ flexDirection: width < 700 ? "column" : "row", gap: 12, marginTop: 22 }}>
+            <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+              <Text style={getEyebrowStyle(colors)}>Collections</Text>
+              <Text style={{ color: colors.text, fontSize: 28, fontWeight: "700" }}>{myCollections.length}</Text>
+            </View>
+            <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+              <Text style={getEyebrowStyle(colors)}>Items</Text>
+              <Text style={{ color: colors.text, fontSize: 28, fontWeight: "700" }}>{ownedItemsCount}</Text>
+            </View>
+            <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+              <Text style={getEyebrowStyle(colors)}>Access</Text>
+              <Text style={{ color: colors.text, fontSize: 28, fontWeight: "700" }}>{roleText}</Text>
+            </View>
           </View>
         </View>
 
-        <View style={{ alignItems: "flex-end", marginTop: 34, marginBottom: 18 }}>
-          <Text style={{ color: colors.muted, fontSize: 24, fontWeight: "700", lineHeight: 31, textAlign: "right", maxWidth: "78%" }}>
-            {displayBio}
-          </Text>
-        </View>
-
-        <View style={{ borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panelSoft, padding: 3, flexDirection: "row", marginBottom: 16 }}>
-          <Pressable onPress={() => setTab("collection")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "collection" ? colors.panel : "transparent", borderWidth: tab === "collection" ? 1 : 0, borderColor: colors.primary }}>
-            <Text style={{ textAlign: "center", color: tab === "collection" ? colors.primary : colors.muted, fontSize: 18, fontWeight: "800" }}>
-              My Collection
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => setTab("wanted")} style={{ flex: 1, borderRadius: 999, paddingVertical: 12, backgroundColor: tab === "wanted" ? colors.panel : "transparent", borderWidth: tab === "wanted" ? 1 : 0, borderColor: colors.accent }}>
-            <Text style={{ textAlign: "center", color: tab === "wanted" ? colors.accent : colors.muted, fontSize: 18, fontWeight: "800" }}>
-              Most Wanted
-            </Text>
-          </Pressable>
-        </View>
-
-        {tab === "collection" && role !== "guest" ? (<View style={{ marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14 }}>
+        <View style={[getPanelStyle(colors, { padding: 14 }), { marginTop: 24, marginBottom: 12 }]}>
             <Text style={{ color: colors.text, fontSize: 16, fontWeight: "800" }}>My Collections</Text>
             <Text style={{ color: colors.muted, marginTop: 4 }}>
               Collections created in the `New` tab appear here.
             </Text>
-          </View>) : null}
+          </View>
 
-        {listToRender.length === 0 ? (<View style={{ borderRadius: 18, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 20 }}>
+        {myCollections.length === 0 ? (<View style={{ borderRadius: 18, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 20 }}>
             <Text style={{ color: colors.muted, fontSize: 16, textAlign: "center" }}>
-              {tab === "collection" ? "No collections created yet." : "No lighters found in this section yet."}
+              No collections created yet.
             </Text>
           </View>) : null}
 
-        {tab === "collection"
-            ? listToRender.map((collection) => (<View key={collection.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14, marginBottom: 10 }}>
+        {myCollections.map((collection) => (<View key={collection.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14, marginBottom: 10 }}>
                 <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800" }} numberOfLines={1}>
                   {collection.title}
                 </Text>
@@ -509,31 +509,9 @@ export function ProfileScreen({ shared }) {
                 <Text style={{ color: colors.primary, marginTop: 8, fontWeight: "700" }}>
                   {collection.itemCount} items
                 </Text>
-                <Pressable onPress={() => openCollection(collection)} style={{ marginTop: 10, alignSelf: "flex-start", borderRadius: 999, borderWidth: 1, borderColor: colors.accent, paddingHorizontal: 14, paddingVertical: 8 }}>
-                  <Text style={{ color: colors.accent, fontWeight: "700" }}>
-                    Open collection
-                  </Text>
-                </Pressable>
-              </View>))
-            : listToRender.map((lighter) => (<View key={lighter.id} style={{ borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 12, flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Pressable onPress={() => setSelectedLighter(lighter)} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                  <Image source={{ uri: lighter.image }} style={{ width: 42, height: 42, borderRadius: 6, marginRight: 12 }}/>
-                  <Text style={{ color: colors.text, fontSize: 19, fontWeight: "800", flex: 1 }} numberOfLines={1}>
-                    {lighter.name}
-                  </Text>
-                </Pressable>
-
-                {lighter.ownerId === currentUserId ? (<View style={{ flexDirection: "row", gap: 12, marginLeft: 8 }}>
-                    <Pressable onPress={() => openLighterEditor(lighter)}>
-                      <SquarePen color={colors.text} size={18}/>
-                    </Pressable>
-                    <Pressable onPress={() => Alert.alert("Delete Lighter", "Are you sure you want to delete this lighter?", [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Delete", style: "destructive", onPress: () => deleteLighter(lighter.id) },
-                    ])}>
-                      <Trash2 color="#ef4444" size={18}/>
-                    </Pressable>
-                  </View>) : null}
+                <BrandButton colors={colors} variant="ghost" onPress={() => openCollection(collection)} style={{ marginTop: 10, alignSelf: "flex-start" }}>
+                  Open collection
+                </BrandButton>
               </View>))}
 
         {role === "admin" ? (<>
@@ -572,9 +550,9 @@ export function ProfileScreen({ shared }) {
               </View>))}
           </>) : null}
 
-        {role !== "guest" ? (<Pressable onPress={confirmLogout} style={{ marginTop: 12, borderWidth: 1, borderColor: "#ef4444", borderRadius: 999, paddingVertical: 14, backgroundColor: colors.panel }}>
-            <Text style={{ textAlign: "center", color: "#ef4444", fontWeight: "800" }}>Logout</Text>
-          </Pressable>) : null}
+        {role !== "guest" ? (<BrandButton colors={colors} variant="ghost" onPress={confirmLogout} style={{ marginTop: 12, borderColor: "#ef4444" }} textStyle={{ color: "#ef4444" }}>
+            Logout
+          </BrandButton>) : null}
       </ScrollView>
 
       <Modal visible={isSettingsOpen && !!settingsForm} transparent animationType="slide" onRequestClose={() => setIsSettingsOpen(false)}>
@@ -586,7 +564,7 @@ export function ProfileScreen({ shared }) {
                 {[
                 ["name", "Display Name"],
                 ["email", "Email"],
-                ["bio", "Bio"],
+                ["nationality", "Nationality"],
                 ["password", "New Password (optional)"],
             ].map(([field, label]) => (<View key={field} style={{ marginTop: 10 }}>
                     <Text style={{ color: "#52525b", marginBottom: 4 }}>{label}</Text>
@@ -595,7 +573,7 @@ export function ProfileScreen({ shared }) {
                         return;
                     setSettingsForm((prev) => (prev ? { ...prev, [field]: value } : prev));
                     setSettingsErrors((prev) => ({ ...prev, [field]: "" }));
-                }} autoCapitalize={field === "email" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={field === "bio"} editable={field !== "email"} selectTextOnFocus={field !== "email"} style={{ color: field === "email" ? "#71717a" : "#111", borderColor: settingsErrors[field] ? "#ef4444" : "#d4d4d8", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: field === "email" ? "#f4f4f5" : "#fdfdfd", minHeight: field === "bio" ? 84 : undefined, textAlignVertical: field === "bio" ? "top" : "center" }}/>
+                }} autoCapitalize={field === "email" ? "none" : "sentences"} secureTextEntry={field === "password"} multiline={false} editable={field !== "email"} selectTextOnFocus={field !== "email"} style={{ color: field === "email" ? "#71717a" : "#111", borderColor: settingsErrors[field] ? "#ef4444" : "#d4d4d8", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: field === "email" ? "#f4f4f5" : "#fdfdfd", textAlignVertical: "center" }}/>
                     {field === "email" ? <Text style={{ color: "#71717a", marginTop: 4 }}>The email is fixed and cannot be changed here.</Text> : null}
                     {settingsErrors[field] ? <Text style={{ color: "#dc2626", marginTop: 4 }}>{settingsErrors[field]}</Text> : null}
                   </View>))}
@@ -827,19 +805,50 @@ export function ProfileScreen({ shared }) {
                     const errorKey = `criteria:${criterion.id}`;
                     return (<View key={criterion.id} style={{ marginTop: 8 }}>
                         <Text style={{ color: colors.text, marginBottom: 4 }}>{criterion.name}</Text>
-                        <TextInput value={lighterForm.criteriaValues[String(criterion.id)] ?? ""} onChangeText={(value) => {
-                            const sanitized = value.replace(/[^0-9]/g, "");
-                            setLighterForm((prev) => (prev
-                                ? {
-                                    ...prev,
-                                    criteriaValues: {
-                                        ...prev.criteriaValues,
-                                        [String(criterion.id)]: sanitized,
-                                    },
-                                }
-                                : prev));
-                            setLighterErrors((prev) => ({ ...prev, [errorKey]: "" }));
-                        }} keyboardType="number-pad" style={{ color: colors.text, borderColor: lighterErrors[errorKey] ? "#ef4444" : colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}/>
+                        <View style={{
+                            borderRadius: 16,
+                            borderWidth: 1,
+                            borderColor: lighterErrors[errorKey] ? "#ef4444" : colors.border,
+                            backgroundColor: colors.panelSoft,
+                            padding: 12,
+                        }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <Text style={{ color: colors.text, fontWeight: "800", fontSize: 15 }}>{criterion.name}</Text>
+                            <Text style={{ color: colors.muted, fontSize: 12 }}>1 Low • 2 Medium • 3 High</Text>
+                          </View>
+                          <View style={{ flexDirection: "row", gap: 8 }}>
+                            {criterionLevelOptions.map((option) => {
+                            const selectedValue = lighterForm.criteriaValues[String(criterion.id)] ?? "1";
+                            const isSelected = selectedValue === option.value;
+                            const visuals = getCriterionLevelVisuals(option.value, isSelected, colors);
+                            return (<Pressable key={option.value} onPress={() => {
+                                    setLighterForm((prev) => (prev
+                                        ? {
+                                            ...prev,
+                                            criteriaValues: {
+                                                ...prev.criteriaValues,
+                                                [String(criterion.id)]: option.value,
+                                            },
+                                        }
+                                        : prev));
+                                    setLighterErrors((prev) => ({ ...prev, [errorKey]: "" }));
+                                }} style={{
+                                    flex: 1,
+                                    borderRadius: 14,
+                                    borderWidth: 1,
+                                    borderColor: visuals.borderColor,
+                                    backgroundColor: visuals.backgroundColor,
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 8,
+                                }}>
+                                  <Text style={{ textAlign: "center", color: visuals.badgeColor, fontSize: 18, fontWeight: "900" }}>{option.value}</Text>
+                                  <Text style={{ textAlign: "center", color: visuals.textColor, fontWeight: "700", marginTop: 2 }}>
+                                    {option.label}
+                                  </Text>
+                                </Pressable>);
+                        })}
+                          </View>
+                        </View>
                         {lighterErrors[errorKey] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{lighterErrors[errorKey]}</Text> : null}
                       </View>);
                 })}

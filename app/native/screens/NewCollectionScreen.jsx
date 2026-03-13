@@ -1,8 +1,12 @@
 import { Sparkles } from "lucide-react-native";
 import { useState } from "react";
-import { Alert, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, SafeAreaView, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiCollectionToAppCollection } from "../../api/mappers";
+import { getBodyTextStyle, getEyebrowStyle, getPageShellStyle, getPanelStyle } from "../artDirection";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { BrandButton } from "../components/BrandButton";
+import { TopBar } from "../components/TopBar";
 import { styles } from "../styles";
 import { requiredText } from "../validation";
 
@@ -18,6 +22,7 @@ export function NewCollectionScreen({ shared }) {
   const [formData, setFormData] = useState(createEmptyForm());
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const { width } = useWindowDimensions();
 
   const saveCollectionItem = async () => {
     const formErrors = {};
@@ -81,22 +86,14 @@ export function NewCollectionScreen({ shared }) {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
-        <View
-          style={[
-            styles.hero,
-            {
-              backgroundColor: colors.panel,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 }}>
-            Fresh drop
-          </Text>
-          <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>New Collection</Text>
-          <Text style={{ color: colors.muted, lineHeight: 19 }}>
-            Create a collection with only the two required fields.
+      <AmbientBackground colors={colors} />
+      <ScrollView contentContainerStyle={getPageShellStyle(width)}>
+        <TopBar colors={colors} activeRoute="New" onToggleTheme={shared.toggleTheme} compact={width < 700} />
+        <View style={[styles.hero, getPanelStyle(colors, { radius: 30, padding: 22 })]}>
+          <Text style={getEyebrowStyle(colors)}>New Collection</Text>
+          <Text style={[styles.screenTitle, { color: colors.text, marginTop: 0 }]}>Create a new collection</Text>
+          <Text style={[getBodyTextStyle(colors, true), { fontSize: 16 }]}>
+            Build a collection page with the two required fields and the official LightIt visual direction.
           </Text>
         </View>
 
@@ -147,37 +144,21 @@ export function NewCollectionScreen({ shared }) {
           {errors.description ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors.description}</Text> : null}
         </View>
 
-        <Pressable
-          onPress={saveCollectionItem}
-          disabled={isSaving}
-          style={{
-            borderRadius: 999,
-            backgroundColor: colors.primary,
-            paddingVertical: 14,
-            opacity: isSaving ? 0.7 : 1,
-          }}
-        >
-          <Text style={{ textAlign: "center", color: "#111", fontSize: 16, fontWeight: "900" }}>
-            {isSaving ? "Creating..." : "Create Collection"}
-          </Text>
-        </Pressable>
+        <BrandButton colors={colors} onPress={saveCollectionItem} disabled={isSaving}>
+          {isSaving ? "Creating..." : "Create Collection"}
+        </BrandButton>
 
-        <Pressable
+        <BrandButton
+          colors={colors}
+          variant="ghost"
           onPress={() => {
             setFormData(createEmptyForm());
             setErrors({});
           }}
-          style={{
-            marginTop: 10,
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.panel,
-            paddingVertical: 13,
-          }}
+          style={{ marginTop: 10 }}
         >
-          <Text style={{ textAlign: "center", color: colors.text, fontWeight: "700" }}>Reset Form</Text>
-        </Pressable>
+          Reset form
+        </BrandButton>
       </ScrollView>
     </SafeAreaView>
   );

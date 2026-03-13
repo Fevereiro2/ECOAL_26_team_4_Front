@@ -1,23 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, SafeAreaView, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { getBodyTextStyle, getEyebrowStyle, getHeadingStyle, getHeroSurfaceStyle, getPageShellStyle, getPanelStyle } from "../artDirection";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { BrandButton } from "../components/BrandButton";
 import { CompareModal } from "../components/CompareModal";
 import { DetailModal } from "../components/DetailModal";
 import { LighterCard } from "../components/LighterCard";
 import { SectionTitle } from "../components/SectionTitle";
+import { TopBar } from "../components/TopBar";
 import { styles } from "../styles";
 export function HomeScreen({ shared }) {
-    const { colors, lighters } = shared;
+    const { colors, lighters, toggleTheme } = shared;
     const featured = lighters.filter((lighter) => lighter.visibility === "public").slice(0, 3);
     const privateCount = lighters.filter((lighter) => lighter.visibility === "private").length;
+    const totalCount = lighters.length;
     const [selected, setSelected] = useState(null);
     const [compare, setCompare] = useState(null);
     const lighterFloat = useRef(new Animated.Value(0)).current;
     const glowPulse = useRef(new Animated.Value(0)).current;
-    const frameBurn = useRef(new Animated.Value(0)).current;
     const { width, height } = useWindowDimensions();
     const compact = height < 780;
-    const heroSize = Math.min(width * 0.52, compact ? 180 : 220);
+    const heroSize = Math.min(width * 0.4, compact ? 190 : 250);
     const logoWidth = compact ? 160 : 190;
+    const shellStyle = getPageShellStyle(width);
     useEffect(() => {
         const floatLoop = Animated.loop(Animated.sequence([
             Animated.timing(lighterFloat, {
@@ -47,84 +52,56 @@ export function HomeScreen({ shared }) {
                 useNativeDriver: true,
             }),
         ]));
-        const burnLoop = Animated.loop(Animated.sequence([
-            Animated.timing(frameBurn, {
-                toValue: 1,
-                duration: 900,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }),
-            Animated.timing(frameBurn, {
-                toValue: 0,
-                duration: 760,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }),
-        ]));
         floatLoop.start();
         glowLoop.start();
-        burnLoop.start();
         return () => {
             floatLoop.stop();
             glowLoop.stop();
-            burnLoop.stop();
         };
-    }, [frameBurn, glowPulse, lighterFloat]);
-    return (<SafeAreaView style={[styles.safe, { backgroundColor: "#120909" }]}>
+    }, [glowPulse, lighterFloat]);
+    return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <View style={{ flex: 1 }}>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "#120909" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(12,5,5,0.52)" }}/>
-        <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(120,18,18,0.12)" }}/>
-        <View style={{ position: "absolute", top: -120, left: -90, width: 260, height: 260, borderRadius: 999, backgroundColor: "rgba(127,29,29,0.34)" }}/>
+        <AmbientBackground colors={colors}/>
         <Animated.View style={{
             position: "absolute",
             right: -40,
-            top: 92,
-            width: 230,
-            height: 230,
+            top: 72,
+            width: 260,
+            height: 260,
             borderRadius: 999,
-            backgroundColor: "rgba(255,170,64,0.18)",
+            backgroundColor: "rgba(243, 207, 103, 0.16)",
             opacity: glowPulse.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.45, 0.9],
+                outputRange: [0.35, 0.72],
             }),
             transform: [
                 {
                     scale: glowPulse.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.9, 1.12],
+                        outputRange: [0.92, 1.08],
                     }),
                 },
             ],
         }}/>
-        <Animated.View style={{
-            position: "absolute",
-            top: compact ? 8 : 12,
-            left: compact ? 6 : 10,
-            right: compact ? 6 : 10,
-            bottom: compact ? 8 : 12,
-            borderWidth: 1,
-            borderColor: "rgba(255,210,122,0.12)",
-            opacity: frameBurn.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.16, 0.42],
-            }),
-        }}/>
 
-        <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 30 }}>
-          <View style={[styles.hero, { backgroundColor: "rgba(20,10,10,0.72)", borderColor: "rgba(255,184,108,0.16)" }]}>
-            <View style={{ flexDirection: compact ? "column" : "row", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <ScrollView contentContainerStyle={shellStyle}>
+          <TopBar colors={colors} activeRoute="Home" onToggleTheme={toggleTheme} compact={width < 700}/>
+
+          <View style={[styles.hero, getHeroSurfaceStyle(colors, width)]}>
+            <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(255,255,255,0.02)" }}/>
+            <View style={{ position: "absolute", inset: 0, opacity: 0.3, backgroundColor: "rgba(232, 121, 71, 0.08)" }}/>
+            <View style={{ flexDirection: width >= 700 ? "row" : "column", alignItems: "center", justifyContent: "space-between", gap: 18 }}>
               <View style={{ flex: 1 }}>
                 <View style={{
             alignSelf: "flex-start",
             borderRadius: 999,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.18)",
-            backgroundColor: "rgba(255,255,255,0.08)",
+            borderColor: colors.border,
+            backgroundColor: colors.panelSoft,
             paddingHorizontal: 12,
             paddingVertical: 6,
         }}>
-                  <Text style={{ color: "#fef2f2", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 }}>COLLECTOR VAULT</Text>
+                  <Text style={getEyebrowStyle(colors)}>Official Collector Edit</Text>
                 </View>
                 <Image source={require("../../../assets/images/prototypes/profile/Logo.png")} style={{
             width: logoWidth,
@@ -132,12 +109,20 @@ export function HomeScreen({ shared }) {
             resizeMode: "contain",
             marginTop: 16,
         }}/>
-                <Text style={{ color: "#ffe4e6", fontSize: compact ? 22 : 28, fontWeight: "600", lineHeight: compact ? 28 : 34, marginTop: 8, maxWidth: "88%" }}>
-                  Ignite the story behind every piece
+                <Text style={[getHeadingStyle(colors, "h1"), { fontSize: width < 420 ? 38 : 52, lineHeight: width < 420 ? 36 : 50, marginTop: 10 }]}>
+                  Light every story worth keeping.
                 </Text>
-                <Text style={{ color: "rgba(255,244,244,0.78)", fontSize: 15, lineHeight: 22, marginTop: 14, maxWidth: "92%" }}>
-                  Track rare lighters, shape your collection, and compare standout finds in one premium mobile vault.
+                <Text style={[getBodyTextStyle(colors, true), { fontSize: 16, marginTop: 14, maxWidth: width >= 700 ? "86%" : "100%" }]}>
+                  A warm industrial vault for collectible lighters, shaped for clear browsing, measured curation, and premium account journeys.
                 </Text>
+                <View style={{ flexDirection: width < 520 ? "column" : "row", gap: 12, marginTop: 18 }}>
+                  <BrandButton colors={colors} onPress={() => setSelected(featured[0] ?? null)} style={{ flex: width < 520 ? undefined : 1 }}>
+                    View spotlight
+                  </BrandButton>
+                  <BrandButton colors={colors} variant="secondary" onPress={() => setCompare(featured[1] ?? featured[0] ?? null)} style={{ flex: width < 520 ? undefined : 1 }}>
+                    Compare pieces
+                  </BrandButton>
+                </View>
               </View>
 
               <Animated.View style={{
@@ -165,9 +150,9 @@ export function HomeScreen({ shared }) {
             width: heroSize * 0.86,
             height: heroSize * 0.86,
             borderRadius: 40,
-            backgroundColor: "rgba(16,10,10,0.42)",
+            backgroundColor: colors.panelSoft,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
+            borderColor: colors.border,
         }}/>
                 <Image source={require("../../../assets/images/prototypes/lighterpng.png")} style={{
             width: heroSize * 0.76,
@@ -177,20 +162,24 @@ export function HomeScreen({ shared }) {
               </Animated.View>
             </View>
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-              <View style={{ flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.06)", padding: 12 }}>
-                <Text style={{ color: "rgba(255,237,213,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Public rides</Text>
-                <Text style={{ color: "#f97316", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{featured.length}</Text>
+            <View style={{ flexDirection: width < 700 ? "column" : "row", gap: 12, marginTop: 24 }}>
+              <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+                <Text style={[getEyebrowStyle(colors), { marginBottom: 6 }]}>Public Collection</Text>
+                <Text style={[getHeadingStyle(colors), { fontSize: 28, lineHeight: 28 }]}>{featured.length}</Text>
               </View>
-              <View style={{ flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.06)", padding: 12 }}>
-                <Text style={{ color: "rgba(255,237,213,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Locked stash</Text>
-                <Text style={{ color: "#fdba74", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{privateCount}</Text>
+              <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+                <Text style={[getEyebrowStyle(colors), { marginBottom: 6 }]}>Private Vault</Text>
+                <Text style={[getHeadingStyle(colors), { fontSize: 28, lineHeight: 28 }]}>{privateCount}</Text>
+              </View>
+              <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { flex: 1 }]}>
+                <Text style={[getEyebrowStyle(colors), { marginBottom: 6 }]}>Total Pieces</Text>
+                <Text style={[getHeadingStyle(colors), { fontSize: 28, lineHeight: 28 }]}>{totalCount}</Text>
               </View>
             </View>
           </View>
 
-          <View style={{ borderRadius: 26, borderWidth: 1, borderColor: "rgba(255,184,108,0.12)", backgroundColor: "rgba(22,8,8,0.78)", padding: 16 }}>
-            <SectionTitle title="Featured Machines" subtitle="Top public pieces from the road" colors={colors}/>
+          <View style={[getPanelStyle(colors, { radius: 30, padding: 22 }), { marginTop: 24 }]}>
+            <SectionTitle title="Featured Collection" subtitle="A restrained selection from the public archive" colors={colors}/>
             {featured.map((item) => (<LighterCard key={item.id} lighter={item} colors={colors} onView={setSelected} onCompare={setCompare}/>))}
           </View>
         </ScrollView>

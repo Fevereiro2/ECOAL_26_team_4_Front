@@ -1,10 +1,14 @@
-import { Plus, Shield, SquarePen, Trash2 } from "lucide-react-native";
+import { Shield, SquarePen, Trash2 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, } from "react-native";
+import { Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, Text, TextInput, View, useWindowDimensions, } from "react-native";
 import { apiRequest, unwrapApiData } from "../../api/client";
 import { mapApiItemToLighter } from "../../api/mappers";
+import { getBodyTextStyle, getEyebrowStyle, getPageShellStyle, getPanelStyle } from "../artDirection";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { BrandButton, IconCircleButton, SelectionChip } from "../components/BrandButton";
 import { DetailModal } from "../components/DetailModal";
-import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
+import { TopBar } from "../components/TopBar";
+import { applyCriteriaValuesToLighter, buildItemPayload, createItemFormState, criterionLevelOptions, getCriterionLevelVisuals, isPeriodCategory, syncItemCriteriaScores, validateItemMetadata } from "../itemForm";
 import { styles } from "../styles";
 import { toSafeLighterPatch, validateLighterForm } from "../validation";
 export function VaultScreen({ shared }) {
@@ -15,6 +19,7 @@ export function VaultScreen({ shared }) {
     const [formOpen, setFormOpen] = useState(false);
     const [formData, setFormData] = useState(createItemFormState(null, criteriaCatalog));
     const [errors, setErrors] = useState({});
+    const { width } = useWindowDimensions();
     const myLighters = useMemo(() => lighters.filter((lighter) => lighter.ownerId === currentUserId &&
         lighter.name.toLowerCase().includes(query.toLowerCase())), [currentUserId, lighters, query]);
     const mechanismCategories = useMemo(() => categories.filter((category) => !isPeriodCategory(category)), [categories]);
@@ -133,39 +138,33 @@ export function VaultScreen({ shared }) {
         }
     };
     return (<SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-      <View style={styles.screenPad}>
-        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.4 }}>Club garage</Text>
-        <Text style={[styles.screenTitle, { color: colors.text, marginTop: 6 }]}>My Vault</Text>
-        <Text style={{ color: colors.muted, marginBottom: 14, lineHeight: 19 }}>
-          Your private garage for collector pieces, tuned notes and road-ready comparisons.
-        </Text>
-        <View style={styles.rowBetween}>
-          <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Machines</Text>
-            <Text style={{ color: colors.primary, fontSize: 22, fontWeight: "900" }}>{myLighters.length}</Text>
+      <AmbientBackground colors={colors}/>
+      <View style={[styles.screenPad, getPageShellStyle(width)]}>
+        <TopBar colors={colors} activeRoute="Vault" onToggleTheme={shared.toggleTheme} compact={width < 700} />
+        <View style={[getPanelStyle(colors, { radius: 30, padding: 22 }), { marginBottom: 12 }]}>
+          <Text style={getEyebrowStyle(colors)}>Private Vault</Text>
+          <Text style={[styles.screenTitle, { color: colors.text, marginTop: 0 }]}>My Vault</Text>
+          <Text style={[getBodyTextStyle(colors, true), { fontSize: 16, marginBottom: 14 }]}>
+            Your private collection space for curated pieces, notes and internal comparisons.
+          </Text>
+          <View style={styles.rowBetween}>
+            <View style={[styles.stat, { backgroundColor: colors.panelSoft, borderColor: colors.border }]}>
+              <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Pieces</Text>
+              <Text style={{ color: colors.accent, fontSize: 22, fontWeight: "900" }}>{myLighters.length}</Text>
+            </View>
+            <View style={[styles.stat, { backgroundColor: colors.panelSoft, borderColor: colors.border, marginRight: 0 }]}>
+              <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Value score</Text>
+              <Text style={{ color: colors.highlight, fontSize: 22, fontWeight: "900" }}>{avgValue}/10</Text>
+            </View>
           </View>
-          <View style={[styles.stat, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-            <Text style={{ color: colors.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>Road score</Text>
-            <Text style={{ color: colors.accent, fontSize: 22, fontWeight: "900" }}>{avgValue}/10</Text>
-          </View>
+          <TextInput placeholder="Search your collection" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[
+              styles.singleInput,
+              { color: colors.text, backgroundColor: colors.panelSoft, borderColor: colors.border },
+          ]}/>
+          <BrandButton colors={colors} onPress={openCreateForm} style={{ marginTop: 8 }}>
+            Add new item
+          </BrandButton>
         </View>
-        <TextInput placeholder="Search your collection" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={[
-            styles.singleInput,
-            { color: colors.text, backgroundColor: colors.panel, borderColor: colors.border },
-        ]}/>
-        <Pressable onPress={openCreateForm} style={{
-            marginTop: 8,
-            borderRadius: 999,
-            backgroundColor: colors.primary,
-            paddingVertical: 13,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-        }}>
-          <Plus color="#1a120d" size={18}/>
-          <Text style={{ color: "#1a120d", fontWeight: "900", letterSpacing: 0.4 }}>Add New Lighter</Text>
-        </Pressable>
       </View>
 
       <FlatList data={myLighters} keyExtractor={(item) => item.id} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 90 }} renderItem={({ item }) => (<View style={[styles.listRow, { backgroundColor: colors.panel, borderColor: colors.border }]}>
@@ -183,12 +182,12 @@ export function VaultScreen({ shared }) {
             </Pressable>
 
             <View style={{ gap: 8 }}>
-              <Pressable onPress={() => openEditForm(item)}>
+              <IconCircleButton colors={colors} onPress={() => openEditForm(item)}>
                 <SquarePen color={colors.text} size={18}/>
-              </Pressable>
-              <Pressable onPress={() => deleteLighter(item.id)}>
+              </IconCircleButton>
+              <IconCircleButton colors={colors} danger onPress={() => deleteLighter(item.id)}>
                 <Trash2 color="#ef4444" size={18}/>
-              </Pressable>
+              </IconCircleButton>
             </View>
           </View>)}/>
 
@@ -232,7 +231,7 @@ export function VaultScreen({ shared }) {
                 {mechanismCategories.map((category) => {
                 const selectedMechanismId = formData.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id)) ?? "";
                 const isSelected = selectedMechanismId === category.id;
-                return (<Pressable key={category.id} onPress={() => {
+                return (<SelectionChip key={category.id} colors={colors} label={category.title} selected={isSelected} onPress={() => {
                         setFormData((prev) => {
                             const currentPeriodId = prev.categoryIds.find((id) => periodCategories.some((option) => option.id === id));
                             const nextMechanismId = prev.categoryIds.includes(category.id) ? "" : category.id;
@@ -240,16 +239,7 @@ export function VaultScreen({ shared }) {
                             return { ...prev, categoryIds: nextIds };
                         });
                         setErrors((prev) => ({ ...prev, categoryIds: "" }));
-                    }} style={{
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        backgroundColor: isSelected ? colors.primary : "transparent",
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                    }}>
-                      <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
-                    </Pressable>);
+                    }}/>);
             })}
               </View>
               <Text style={{ color: colors.muted, marginTop: 12, marginBottom: 6 }}>Period Category</Text>
@@ -257,7 +247,7 @@ export function VaultScreen({ shared }) {
                 {periodCategories.map((category) => {
                 const selectedPeriodId = formData.categoryIds.find((id) => periodCategories.some((option) => option.id === id)) ?? "";
                 const isSelected = selectedPeriodId === category.id;
-                return (<Pressable key={category.id} onPress={() => {
+                return (<SelectionChip key={category.id} colors={colors} label={category.title} selected={isSelected} onPress={() => {
                         setFormData((prev) => {
                             const currentMechanismId = prev.categoryIds.find((id) => mechanismCategories.some((option) => option.id === id));
                             const nextPeriodId = prev.categoryIds.includes(category.id) ? "" : category.id;
@@ -265,16 +255,7 @@ export function VaultScreen({ shared }) {
                             return { ...prev, categoryIds: nextIds };
                         });
                         setErrors((prev) => ({ ...prev, categoryIds: "" }));
-                    }} style={{
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        backgroundColor: isSelected ? colors.primary : "transparent",
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                    }}>
-                      <Text style={{ color: isSelected ? "#111" : colors.text, fontWeight: "700" }}>{category.title}</Text>
-                    </Pressable>);
+                    }}/>);
             })}
               </View>
               {errors.categoryIds ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors.categoryIds}</Text> : null}
@@ -284,60 +265,53 @@ export function VaultScreen({ shared }) {
               <Text style={{ color: colors.muted, marginBottom: 6 }}>Criteria Scores</Text>
               {criteriaCatalog.map((criterion) => {
                 const errorKey = `criteria:${criterion.id}`;
+                const selectedValue = formData.criteriaValues[String(criterion.id)] ?? "1";
                 return (<View key={criterion.id} style={{ marginTop: 8 }}>
-                    <Text style={{ color: colors.text, marginBottom: 4 }}>{criterion.name}</Text>
-                    <TextInput value={formData.criteriaValues[String(criterion.id)] ?? ""} onChangeText={(value) => {
-                        const sanitized = value.replace(/[^0-9]/g, "");
-                        setFormData((prev) => ({
-                            ...prev,
-                            criteriaValues: {
-                                ...prev.criteriaValues,
-                                [String(criterion.id)]: sanitized,
-                            },
-                        }));
-                        setErrors((prev) => ({ ...prev, [errorKey]: "" }));
-                    }} keyboardType="number-pad" style={{
-                        color: colors.text,
-                        borderColor: errors[errorKey] ? "#ef4444" : colors.border,
+                    <View style={{
+                        borderRadius: 16,
                         borderWidth: 1,
-                        borderRadius: 10,
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                    }}/>
+                        borderColor: errors[errorKey] ? "#ef4444" : colors.border,
+                        backgroundColor: colors.panelSoft,
+                        padding: 12,
+                    }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <Text style={{ color: colors.text, fontWeight: "800", fontSize: 15 }}>{criterion.name}</Text>
+                        <Text style={{ color: colors.muted, fontSize: 12 }}>1 Low • 2 Medium • 3 High</Text>
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                      {criterionLevelOptions.map((option) => {
+                        const isSelected = selectedValue === option.value;
+                        const visuals = getCriterionLevelVisuals(option.value, isSelected, colors);
+                        return (<SelectionChip key={option.value} colors={colors} label={`${option.value} ${option.label}`} selected={isSelected} compact onPress={() => {
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    criteriaValues: {
+                                        ...prev.criteriaValues,
+                                        [String(criterion.id)]: option.value,
+                                    },
+                                }));
+                                setErrors((prev) => ({ ...prev, [errorKey]: "" }));
+                            }} style={{ flex: 1, borderColor: visuals.borderColor, backgroundColor: visuals.backgroundColor }}/>
+                        );
+                    })}
+                      </View>
+                    </View>
                     {errors[errorKey] ? <Text style={{ color: "#ef4444", marginTop: 4 }}>{errors[errorKey]}</Text> : null}
                   </View>);
             })}
             </View>
 
             <View style={{ marginTop: 12, flexDirection: "row", gap: 10 }}>
-              <Pressable onPress={() => setFormData((prev) => ({ ...prev, visibility: "private" }))} style={{
-            flex: 1,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: formData.visibility === "private" ? colors.primary : "transparent",
-            paddingVertical: 10,
-        }}>
-                <Text style={{ textAlign: "center", color: formData.visibility === "private" ? "#111" : colors.text }}>Private</Text>
-              </Pressable>
-              <Pressable onPress={() => setFormData((prev) => ({ ...prev, visibility: "public" }))} style={{
-            flex: 1,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: formData.visibility === "public" ? colors.primary : "transparent",
-            paddingVertical: 10,
-        }}>
-                <Text style={{ textAlign: "center", color: formData.visibility === "public" ? "#111" : colors.text }}>Public</Text>
-              </Pressable>
+              <SelectionChip colors={colors} label="Private" selected={formData.visibility === "private"} onPress={() => setFormData((prev) => ({ ...prev, visibility: "private" }))} style={{ flex: 1 }}/>
+              <SelectionChip colors={colors} label="Public" selected={formData.visibility === "public"} onPress={() => setFormData((prev) => ({ ...prev, visibility: "public" }))} style={{ flex: 1 }}/>
             </View>
 
-            <Pressable onPress={saveForm} style={[styles.closeBtn, { backgroundColor: colors.primary }]}> 
-              <Text style={styles.actionBtnText}>{editing ? "Save Changes" : "Create Lighter"}</Text>
-            </Pressable>
-            <Pressable onPress={() => setFormOpen(false)} style={[styles.closeBtn, { backgroundColor: colors.border }]}> 
-              <Text style={{ color: colors.text, fontWeight: "700" }}>Cancel</Text>
-            </Pressable>
+            <BrandButton colors={colors} onPress={saveForm} style={{ marginTop: 12 }}>
+              {editing ? "Save changes" : "Create item"}
+            </BrandButton>
+            <BrandButton colors={colors} variant="secondary" onPress={() => setFormOpen(false)} style={{ marginTop: 8 }}>
+              Cancel
+            </BrandButton>
           </ScrollView>
         </View>
       </Modal>

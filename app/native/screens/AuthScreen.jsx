@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, Modal, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { Animated, Easing, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { getBodyTextStyle, getEyebrowStyle, getHeadingStyle, getPageShellStyle, getPanelStyle } from "../artDirection";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { BrandButton } from "../components/BrandButton";
 import { requiredText, validateEmail, validatePassword } from "../validation";
-export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, onContinueGuest, onQuickLogin, }) {
+
+const logoImage = require("../../../assets/images/prototypes/profile/Logo.png");
+
+function FieldError({ message }) {
+    if (!message) {
+        return null;
+    }
+    return <Text style={{ color: "#dc2626", marginTop: 4 }}>{message}</Text>;
+}
+
+export function AuthScreen({ colors, statusMessage, onLogin, onRegister, onContinueGuest }) {
     const [mode, setMode] = useState("login");
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isModalMounted, setIsModalMounted] = useState(false);
@@ -17,19 +30,20 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
     const sheetAnim = useRef(new Animated.Value(0)).current;
     const lighterFloat = useRef(new Animated.Value(0)).current;
     const glowPulse = useRef(new Animated.Value(0)).current;
-    const frameBurn = useRef(new Animated.Value(0)).current;
     const { width, height } = useWindowDimensions();
+    const shellStyle = getPageShellStyle(width);
     const isLogin = mode === "login";
-    const submitLabel = isLogin ? "Login" : "Register";
-    const compact = height < 780;
-    const heroSize = Math.min(width * 0.68, compact ? 230 : 290);
-    const lighterSize = heroSize * 1.50;
-    const subtitleSize = width < 390 ? 28 : 34;
+    const isRegister = mode === "register";
+    const isForgotPassword = mode === "forgot";
+    const heroImageSize = Math.min(width * 0.54, height < 780 ? 210 : 280);
+    const isSplitLayout = width >= 700;
+
     const switchMode = (nextMode) => {
         setMode(nextMode);
         setErrors({});
         setFormError(null);
     };
+
     useEffect(() => {
         if (isPopupOpen) {
             setIsModalMounted(true);
@@ -52,6 +66,7 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
             }
         });
     }, [isPopupOpen, sheetAnim]);
+
     useEffect(() => {
         const floatLoop = Animated.loop(Animated.sequence([
             Animated.timing(lighterFloat, {
@@ -81,360 +96,326 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
                 useNativeDriver: true,
             }),
         ]));
-        const burnLoop = Animated.loop(Animated.sequence([
-            Animated.timing(frameBurn, {
-                toValue: 1,
-                duration: 900,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }),
-            Animated.timing(frameBurn, {
-                toValue: 0,
-                duration: 760,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }),
-        ]));
         floatLoop.start();
         glowLoop.start();
-        burnLoop.start();
         return () => {
             floatLoop.stop();
             glowLoop.stop();
-            burnLoop.stop();
         };
-    }, [frameBurn, glowPulse, lighterFloat]);
+    }, [glowPulse, lighterFloat]);
+
     const openPopup = (nextMode) => {
         switchMode(nextMode);
         setIsPopupOpen(true);
     };
+
     const closePopup = () => {
         setErrors({});
         setFormError(null);
         setIsPopupOpen(false);
     };
+
     const handleSubmit = async () => {
         const nextErrors = {};
         const emailError = validateEmail(email);
         const passwordError = validatePassword(password);
-        if (mode === "register") {
+
+        if (isRegister) {
             const nameError = requiredText(name, "Name");
-            if (nameError)
+            if (nameError) {
                 nextErrors.name = nameError;
+            }
             if (confirmPassword !== password) {
                 nextErrors.confirmPassword = "Passwords must match.";
             }
         }
-        if (emailError)
+
+        if (!isForgotPassword && emailError) {
             nextErrors.email = emailError;
-        if (passwordError)
+        }
+        if (!isForgotPassword && passwordError) {
             nextErrors.password = passwordError;
+        }
+
         setErrors(nextErrors);
         setFormError(null);
-        if (Object.keys(nextErrors).length > 0)
+        if (Object.keys(nextErrors).length > 0 || isForgotPassword) {
             return;
+        }
+
         setIsSubmitting(true);
         try {
-            if (mode === "login") {
+            if (isLogin) {
                 const error = await onLogin(email, password);
-                if (error)
+                if (error) {
                     setFormError(error);
+                }
                 return;
             }
             const error = await onRegister(name, email, password);
-            if (error)
+            if (error) {
                 setFormError(error);
+            }
         }
         finally {
             setIsSubmitting(false);
         }
     };
-    return (<SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
-        <View style={{ flex: 1 }}>
 
-          <View style={{ position: "absolute", inset: 0,  }}/>
-          <View style={{ position: "absolute", inset: 0,  }}/>
-          <View style={{
-            position: "absolute",
-            top: -120,
-            left: -90,
-            width: 260,
-            height: 260,
-            borderRadius: 999,
-            backgroundColor: "rgba(127,29,29,0.34)",
-        }}/>
-          <View style={{
-            position: "absolute",
-            bottom: 120,
-            right: -110,
-            width: 300,
-            height: 300,
-            borderRadius: 999,
-            backgroundColor: "rgba(249,115,22,0.12)",
-        }}/>
-          <Animated.View style={{
-            position: "absolute",
-            top: compact ? 8 : 12,
-            left: compact ? 6 : 10,
-            right: compact ? 6 : 10,
-            bottom: compact ? 8 : 12,
-            
-            
-            opacity: frameBurn.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.16, 0.42],
-            }),
-        }}/>
-          <Animated.View style={{
-            position: "absolute",
-            right: -40,
-            top: 92,
-            width: 230,
-            height: 230,
-            borderRadius: 999,
-            backgroundColor: "rgba(255,170,64,0.18)",
-            opacity: glowPulse.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.45, 0.9],
-            }),
-            transform: [
-                {
-                    scale: glowPulse.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.9, 1.12],
-                    }),
-                },
-            ],
-        }}/>
+    const inputStyle = (field) => ({
+        color: colors.text,
+        borderColor: errors[field] ? "#dc2626" : colors.border,
+        borderWidth: 1,
+        borderRadius: 16,
+        minHeight: 50,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: colors.panelSoft,
+    });
 
-          <View style={{ paddingHorizontal: 24, paddingTop: compact ? 44 : 72 }}>
-            <View style={{
-            alignSelf: "flex-start",
-            borderRadius: 999,
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.18)",
-            backgroundColor: "rgba(255,255,255,0.08)",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-        }}>
-              <Text style={{ color: "#000000", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 }}>COLLECTOR VAULT</Text>
+    return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+            <View style={{ flex: 1 }}>
+                <AmbientBackground colors={colors} />
+                <Animated.View
+                    pointerEvents="none"
+                    style={{
+                        position: "absolute",
+                        right: -40,
+                        top: 110,
+                        width: 250,
+                        height: 250,
+                        borderRadius: 999,
+                        backgroundColor: "rgba(243, 207, 103, 0.16)",
+                        opacity: glowPulse.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.4, 0.8],
+                        }),
+                        transform: [
+                            {
+                                scale: glowPulse.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.94, 1.08],
+                                }),
+                            },
+                        ],
+                    }}
+                />
+
+                <ScrollView contentContainerStyle={shellStyle}>
+                    <View style={[getPanelStyle(colors, { radius: 30, padding: width >= 700 ? 24 : 18 }), { overflow: "hidden" }]}>
+                        <View style={{ flexDirection: isSplitLayout ? "row" : "column", gap: 22 }}>
+                            <View style={{ flex: isSplitLayout ? 1.05 : undefined }}>
+                                <Text style={getEyebrowStyle(colors)}>Official Collector Vault</Text>
+                                <Text style={[getHeadingStyle(colors, "h1"), { fontSize: width < 420 ? 38 : 52, lineHeight: width < 420 ? 36 : 50 }]}>
+                                    Warm curation, clear access, premium restraint.
+                                </Text>
+                                <Text style={[getBodyTextStyle(colors, true), { fontSize: 16, marginTop: 16, maxWidth: isSplitLayout ? "82%" : "100%" }]}>
+                                    LightIt is designed as a collectible archive first: cinematic atmosphere, sharp clarity, and account flows that stay quiet and precise.
+                                </Text>
+
+                                <View style={{ flexDirection: width < 480 ? "column" : "row", gap: 12, marginTop: 22 }}>
+                                    <BrandButton colors={colors} onPress={() => openPopup("login")} style={{ flex: width < 480 ? undefined : 1 }}>
+                                        Open login
+                                    </BrandButton>
+                                    <BrandButton colors={colors} variant="ghost" onPress={onContinueGuest} style={{ flex: width < 480 ? undefined : 1 }}>
+                                        Continue as guest
+                                    </BrandButton>
+                                </View>
+
+                                {statusMessage ? (
+                                    <View style={[getPanelStyle(colors, { elevated: true, padding: 14 }), { marginTop: 16 }]}>
+                                        <Text style={getBodyTextStyle(colors, true)}>{statusMessage}</Text>
+                                    </View>
+                                ) : null}
+                            </View>
+
+                            <View style={{ flex: isSplitLayout ? 0.95 : undefined, alignItems: "center", justifyContent: "center", minHeight: isSplitLayout ? 360 : 240 }}>
+                                <Animated.View
+                                    style={{
+                                        transform: [
+                                            {
+                                                translateY: lighterFloat.interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: [0, -12],
+                                                }),
+                                            },
+                                        ],
+                                    }}
+                                >
+                                    <View style={[getPanelStyle(colors, { elevated: true, padding: 18 }), { borderRadius: 30 }]}>
+                                        <Image source={logoImage} style={{ width: heroImageSize, height: heroImageSize * 0.58, resizeMode: "contain" }} />
+                                    </View>
+                                </Animated.View>
+                            </View>
+                        </View>
+                    </View>
+                </ScrollView>
             </View>
 
-            
-            <Text style={{ color: "#0a0a0a", fontSize: subtitleSize, fontWeight: "600", lineHeight: subtitleSize + 4, marginTop: 10, maxWidth: "82%" }}>
-              Ignite the story behind every piece
-            </Text>
-            <Text style={{ color: "rgba(0, 0, 0, 0.78)", fontSize: 15, lineHeight: 22, marginTop: 14, maxWidth: compact ? "88%" : "74%" }}>
-              Track rare lighters, shape your collection, and compare standout finds in one premium mobile vault.
-            </Text>
-          </View>
+            <Modal visible={isModalMounted} transparent animationType="none" onRequestClose={closePopup}>
+                <View style={{ flex: 1, justifyContent: "flex-end" }}>
+                    <Animated.View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(18, 14, 10, 0.48)", opacity: sheetAnim }} />
+                    <Pressable onPress={closePopup} style={StyleSheet.absoluteFillObject} />
 
-<View style={{ alignItems: "center", marginTop: compact ? 19 : 24 }}>
-  
-    <Image
-      source={require("../../../assets/images/prototypes/profile/Logo.png")}
-      style={{
-        margintop: "40vh",
-        width: lighterSize,
-        height: lighterSize,
-        resizeMode: "contain",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 25 },
-        shadowOpacity: 0.3,
-        shadowRadius: 26,
-      }}
-    />
+                    <Animated.View
+                        style={[
+                            getPanelStyle(colors, { radius: 30, padding: 24 }),
+                            {
+                                borderBottomLeftRadius: 0,
+                                borderBottomRightRadius: 0,
+                                minHeight: "62%",
+                                maxHeight: "80%",
+                                transform: [
+                                    {
+                                        translateY: sheetAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [480, 0],
+                                        }),
+                                    },
+                                ],
+                                opacity: sheetAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.6, 1],
+                                }),
+                            },
+                        ]}
+                    >
+                        <View style={{ alignItems: "center", marginBottom: 12 }}>
+                            <Pressable onPress={closePopup}>
+                                <View style={{ width: 52, height: 5, borderRadius: 999, backgroundColor: colors.border }} />
+                            </Pressable>
+                        </View>
 
-</View>
+                        <Text style={[getHeadingStyle(colors, "h2"), { textAlign: "center", alignSelf: "center" }]}>
+                            {isLogin ? "Sign in to your vault" : isRegister ? "Create your account" : "Forgot password"}
+                        </Text>
+                        <Text style={[getBodyTextStyle(colors, true), { textAlign: "center", marginTop: 10, marginBottom: 18 }]}>
+                            {isLogin
+                                ? "Use your existing account to open the collection space."
+                                : isRegister
+                                    ? "Create a profile once, then build collections and items with the same visual language."
+                                    : "This page is intentionally a placeholder. Email recovery is not connected yet."}
+                        </Text>
 
-          <View style={{ flex: compact ? 0.6 : 1 }}/>
+                        {isRegister ? (
+                            <View style={{ marginBottom: 8 }}>
+                                <TextInput
+                                    value={name}
+                                    onChangeText={(value) => {
+                                        setName(value);
+                                        setErrors((prev) => ({ ...prev, name: "" }));
+                                    }}
+                                    placeholder="Full name"
+                                    placeholderTextColor={colors.muted}
+                                    style={inputStyle("name")}
+                                />
+                                <FieldError message={errors.name} />
+                            </View>
+                        ) : null}
 
-          <View style={{ paddingHorizontal: 20, paddingBottom: 22 }}>
- 
+                        <View style={{ marginBottom: 8 }}>
+                            <TextInput
+                                value={email}
+                                onChangeText={(value) => {
+                                    setEmail(value);
+                                    setErrors((prev) => ({ ...prev, email: "" }));
+                                }}
+                                placeholder="Email"
+                                placeholderTextColor={colors.muted}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                editable={!isForgotPassword}
+                                style={inputStyle("email")}
+                            />
+                            <FieldError message={errors.email} />
+                        </View>
 
-            <Pressable onPress={() => openPopup("login")} style={{
-            backgroundColor: "#f97316",
-            borderRadius: 999,
-            paddingVertical: 15,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.18,
-            shadowRadius: 18,
-        }}>
-              <Text style={{ textAlign: "center", color: "#fff", fontSize: 18, fontWeight: "900" }}>Open login</Text>
-            </Pressable>
+                        {!isForgotPassword ? (
+                            <View style={{ marginBottom: 8 }}>
+                                <View style={[inputStyle("password"), { flexDirection: "row", alignItems: "center" }]}>
+                                    <TextInput
+                                        value={password}
+                                        onChangeText={(value) => {
+                                            setPassword(value);
+                                            setErrors((prev) => ({ ...prev, password: "" }));
+                                        }}
+                                        placeholder="Password"
+                                        placeholderTextColor={colors.muted}
+                                        secureTextEntry={!showPassword}
+                                        style={{ flex: 1, color: colors.text }}
+                                    />
+                                    <Pressable onPress={() => setShowPassword((prev) => !prev)}>
+                                        <Text style={{ color: colors.accent, fontWeight: "700" }}>{showPassword ? "Hide" : "Show"}</Text>
+                                    </Pressable>
+                                </View>
+                                <FieldError message={errors.password} />
+                            </View>
+                        ) : null}
 
+                        {isRegister ? (
+                            <View style={{ marginBottom: 8 }}>
+                                <View style={[inputStyle("confirmPassword"), { flexDirection: "row", alignItems: "center" }]}>
+                                    <TextInput
+                                        value={confirmPassword}
+                                        onChangeText={(value) => {
+                                            setConfirmPassword(value);
+                                            setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                                        }}
+                                        placeholder="Confirm password"
+                                        placeholderTextColor={colors.muted}
+                                        secureTextEntry={!showConfirmPassword}
+                                        style={{ flex: 1, color: colors.text }}
+                                    />
+                                    <Pressable onPress={() => setShowConfirmPassword((prev) => !prev)}>
+                                        <Text style={{ color: colors.accent, fontWeight: "700" }}>{showConfirmPassword ? "Hide" : "Show"}</Text>
+                                    </Pressable>
+                                </View>
+                                <FieldError message={errors.confirmPassword} />
+                            </View>
+                        ) : null}
 
-          </View>
-        </View>
+                        {formError ? <Text style={{ color: "#dc2626", marginBottom: 12 }}>{formError}</Text> : null}
 
-      <Modal visible={isModalMounted} transparent animationType="none" onRequestClose={closePopup}>
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          <Animated.View style={{
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: colors.bg,
-            opacity: sheetAnim,
-        }}/>
+                        {isForgotPassword ? (
+                            <View style={[getPanelStyle(colors, { elevated: true, padding: 16 }), { marginTop: 8 }]}>
+                                <Text style={[getBodyTextStyle(colors, true), { textAlign: "center" }]}>
+                                    Password recovery screen placeholder. When the backend flow exists, this area can trigger the real reset process.
+                                </Text>
+                            </View>
+                        ) : (
+                            <BrandButton colors={colors} onPress={handleSubmit} disabled={isSubmitting} style={{ marginTop: 8 }}>
+                                {isSubmitting ? "Please wait..." : isLogin ? "Login" : "Register"}
+                            </BrandButton>
+                        )}
 
-          <Pressable onPress={closePopup} style={{ ...StyleSheet.absoluteFillObject }}/>
+                        {isLogin ? (
+                            <Pressable onPress={() => switchMode("forgot")} style={{ marginTop: 12 }}>
+                                <Text style={{ textAlign: "center", color: colors.accent, fontWeight: "700" }}>Forgot your password?</Text>
+                            </Pressable>
+                        ) : null}
 
-          <Animated.View style={{
-            transform: [
-                {
-                    translateY: sheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [480, 0],
-                    }),
-                },
-            ],
-            opacity: sheetAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.6, 1],
-            }),
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            borderWidth: 1,
-            borderColor: "rgba(255,184,108,0.2)",
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: 20,
-            minHeight: "62%",
-            maxHeight: "78%",
-        }}>
-            <View style={{ alignItems: "center", marginBottom: 10 }}>
-              <Pressable onPress={closePopup} style={{ marginTop: 10 }}>
-                <View style={{ width: 52, height: 5, borderRadius: 999, backgroundColor: "rgba(0, 0, 0, 0.34)" }}/>
-              </Pressable>
-            </View>
+                        {isLogin ? (
+                            <Pressable onPress={() => switchMode("register")} style={{ marginTop: 16 }}>
+                                <Text style={{ textAlign: "center", color: colors.text }}>
+                                    No account yet? <Text style={{ color: colors.accent, fontWeight: "700" }}>Create one</Text>
+                                </Text>
+                            </Pressable>
+                        ) : (
+                            <Pressable onPress={() => switchMode("login")} style={{ marginTop: 16 }}>
+                                <Text style={{ textAlign: "center", color: colors.text }}>
+                                    {isRegister ? "Already have an account? " : "Back to "}
+                                    <Text style={{ color: colors.accent, fontWeight: "700" }}>Login</Text>
+                                </Text>
+                            </Pressable>
+                        )}
 
-            <Text style={{ textAlign: "center", color: "#000000", fontSize: 34, fontWeight: "800", marginBottom: 8 }}>
-              {isLogin ? "Connect to your vault" : "Create your account"}
-            </Text>
-            <Text style={{ textAlign: "center", color: "rgba(0, 0, 0, 0.74)", fontSize: 14, lineHeight: 20, marginBottom: 18 }}>
-              {isLogin
-                ? "Use your email, continue as guest, or jump in with quick access."
-                : "Register once, then start cataloguing your collection with a cleaner flow."}
-            </Text>
-
-            {!isLogin ? (<>
-                <TextInput value={name} onChangeText={(value) => {
-                setName(value);
-                setErrors((prev) => ({ ...prev, name: "" }));
-            }} placeholder="User Name" placeholderTextColor="#a1a1aa" style={{
-                color: "#000000",
-                borderColor: errors.name ? "#fb7185" : "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderRadius: 14,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                marginBottom: 6,
-                backgroundColor: "rgba(255,255,255,0.08)",
-                fontSize: 17,
-            }}/>
-                {errors.name ? <Text style={{ color: "#fb7185", marginBottom: 8 }}>{errors.name}</Text> : null}
-              </>) : null}
-
-            <TextInput value={email} onChangeText={(value) => {
-            setEmail(value);
-            setErrors((prev) => ({ ...prev, email: "" }));
-        }} placeholder="Email" autoCapitalize="none" keyboardType="email-address" placeholderTextColor="#a1a1aa" style={{
-            color: "#000000",
-            borderColor: errors.email ? "#fb7185" : "rgba(255,255,255,0.14)",
-            borderWidth: 1,
-            borderRadius: 14,
-            paddingHorizontal: 14,
-            paddingVertical: 12,
-            marginBottom: 6,
-            backgroundColor: "rgba(255,255,255,0.08)",
-            fontSize: 17,
-        }}/>
-            {errors.email ? <Text style={{ color: "#fb7185", marginBottom: 8 }}>{errors.email}</Text> : null}
-
-            <View style={{
-            borderColor: errors.password ? "#fb7185" : "rgba(255,255,255,0.14)",
-            borderWidth: 1,
-            borderRadius: 14,
-            backgroundColor: "rgba(255,255,255,0.08)",
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 14,
-            marginBottom: 6,
-        }}>
-              <TextInput value={password} onChangeText={(value) => {
-            setPassword(value);
-            setErrors((prev) => ({ ...prev, password: "" }));
-        }} placeholder="Password" secureTextEntry={!showPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#000000", paddingVertical: 12, fontSize: 17 }}/>
-              <Pressable onPress={() => setShowPassword((prev) => !prev)}>
-                <Text style={{ color: "#fdba74", fontSize: 16, fontWeight: "700" }}>{showPassword ? "Hide" : "Show"}</Text>
-              </Pressable>
-            </View>
-            {errors.password ? <Text style={{ color: "#fda4af", marginBottom: 8 }}>{errors.password}</Text> : null}
-
-            {!isLogin ? (<>
-                <View style={{
-                borderColor: errors.confirmPassword ? "#ff1c36" : "rgba(255,255,255,0.14)",
-                borderWidth: 1,
-                borderRadius: 14,
-                backgroundColor: "rgba(255,255,255,0.08)",
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 14,
-                marginBottom: 6,
-            }}>
-                  <TextInput value={confirmPassword} onChangeText={(value) => {
-                setConfirmPassword(value);
-                setErrors((prev) => ({ ...prev, confirmPassword: "" }));
-            }} placeholder="Confirm Password" secureTextEntry={!showConfirmPassword} placeholderTextColor="#a1a1aa" style={{ flex: 1, color: "#000000", paddingVertical: 12, fontSize: 17 }}/>
-                  <Pressable onPress={() => setShowConfirmPassword((prev) => !prev)}>
-                    <Text style={{ color: "#fdba74", fontSize: 16, fontWeight: "700" }}>{showConfirmPassword ? "Hide" : "Show"}</Text>
-                  </Pressable>
+                        <Pressable onPress={closePopup} style={{ marginTop: 12 }}>
+                            <Text style={{ textAlign: "center", color: colors.muted }}>Close</Text>
+                        </Pressable>
+                    </Animated.View>
                 </View>
-                {errors.confirmPassword ? <Text style={{ color: "#fda4af", marginBottom: 8 }}>{errors.confirmPassword}</Text> : null}
-              </>) : null}
-
-            {formError ? <Text style={{ color: "#ff1c36", marginTop: 4, marginBottom: 8 }}>{formError}</Text> : null}
-            {statusMessage ? (<View style={{
-                marginBottom: 8,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: "rgba(253,186,116,0.18)",
-                backgroundColor: "rgba(255,255,255,0.04)",
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-            }}>
-                <Text style={{ color: "rgba(255,237,213,0.82)", lineHeight: 18 }}>{statusMessage}</Text>
-              </View>) : null}
-
-            <Pressable disabled={isSubmitting} onPress={handleSubmit} style={{
-            backgroundColor: "#f97316",
-            borderRadius: 999,
-            paddingVertical: 14,
-            marginTop: 18,
-            opacity: isSubmitting ? 0.7 : 1,
-        }}>
-              <Text style={{ textAlign: "center", color: "#fff", fontSize: 19, fontWeight: "800" }}>
-                {isSubmitting ? "Please wait..." : submitLabel}
-              </Text>
-            </Pressable>
-
-            {isLogin ? (<Pressable style={{ marginTop: 10 }}>
-                <Text style={{ textAlign: "center", color: "#fdba74", fontSize: 15 }}>Forgot your password?</Text>
-              </Pressable>) : null}
-            {isLogin ? (<Pressable onPress={() => switchMode("register")} style={{ marginTop: 14 }}>
-                <Text style={{ textAlign: "center", color: "#000000", fontSize: 15 }}>
-                  No account yet? <Text style={{ color: "#f97316", fontWeight: "800" }}>Create one</Text>
-                </Text>
-              </Pressable>) : (<Pressable onPress={() => switchMode("login")} style={{ marginTop: 14 }}>
-                <Text style={{ textAlign: "center", color: "#000000", fontSize: 15 }}>
-                  Already have an account? <Text style={{ color: "#f97316", fontWeight: "800" }}>Login</Text>
-                </Text>
-              </Pressable>)}
-            <Pressable onPress={closePopup} style={{ marginTop: 10 }}>
-              <Text style={{ textAlign: "center", color: "rgba(255,237,213,0.72)", fontSize: 14 }}>Close</Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </Modal>
-    </SafeAreaView>);
+            </Modal>
+        </SafeAreaView>
+    );
 }
