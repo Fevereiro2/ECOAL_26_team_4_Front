@@ -317,34 +317,6 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
                 : "Register once, then start cataloguing your collection with a cleaner flow."}
             </Text>
 
-            <View style={{
-            flexDirection: "row",
-            gap: 10,
-            marginBottom: 18,
-            borderRadius: 999,
-            padding: 4,
-            backgroundColor: "rgba(255,255,255,0.06)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
-        }}>
-              <Pressable onPress={() => switchMode("login")} style={{
-            flex: 1,
-            borderRadius: 999,
-            paddingVertical: 10,
-            backgroundColor: isLogin ? "#f97316" : "transparent",
-        }}>
-                <Text style={{ textAlign: "center", color: "#000000", fontWeight: "800", fontSize: 14 }}>Login</Text>
-              </Pressable>
-              <Pressable onPress={() => switchMode("register")} style={{
-            flex: 1,
-            borderRadius: 999,
-            paddingVertical: 10,
-            backgroundColor: !isLogin ? "#f97316" : "transparent",
-        }}>
-                <Text style={{ textAlign: "center", color: "#000000", fontWeight: "800", fontSize: 14 }}>Register</Text>
-              </Pressable>
-            </View>
-
             {!isLogin ? (<>
                 <TextInput value={name} onChangeText={(value) => {
                 setName(value);
@@ -449,6 +421,15 @@ export function AuthScreen({ colors, users, statusMessage, onLogin, onRegister, 
             {isLogin ? (<Pressable style={{ marginTop: 10 }}>
                 <Text style={{ textAlign: "center", color: "#fdba74", fontSize: 15 }}>Forgot your password?</Text>
               </Pressable>) : null}
+            {isLogin ? (<Pressable onPress={() => switchMode("register")} style={{ marginTop: 14 }}>
+                <Text style={{ textAlign: "center", color: "#000000", fontSize: 15 }}>
+                  No account yet? <Text style={{ color: "#f97316", fontWeight: "800" }}>Create one</Text>
+                </Text>
+              </Pressable>) : (<Pressable onPress={() => switchMode("login")} style={{ marginTop: 14 }}>
+                <Text style={{ textAlign: "center", color: "#000000", fontSize: 15 }}>
+                  Already have an account? <Text style={{ color: "#f97316", fontWeight: "800" }}>Login</Text>
+                </Text>
+              </Pressable>)}
             <Pressable onPress={closePopup} style={{ marginTop: 10 }}>
               <Text style={{ textAlign: "center", color: "rgba(255,237,213,0.72)", fontSize: 14 }}>Close</Text>
             </Pressable>
