@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { Compass, Flame, Library, Plus, User } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StatusBar, View } from "react-native";
+import { ActivityIndicator, Platform, StatusBar, View } from "react-native";
 import { API_BASE_URL, apiRequest, unwrapApiData } from "./api/client";
 import { mapApiCollectionToAppCollection, mapApiItemToLighter, mapApiUserToAppUser, mapCriterionToAppKey } from "./api/mappers";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
@@ -116,6 +116,20 @@ function AppShell() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [authError, setAuthError] = useState(null);
     const [localAvatarMap, setLocalAvatarMap] = useState({});
+    useEffect(() => {
+        if (Platform.OS !== "web" || typeof document === "undefined") {
+            return;
+        }
+        const fontLinkId = "lightit-brand-fonts";
+        if (document.getElementById(fontLinkId)) {
+            return;
+        }
+        const link = document.createElement("link");
+        link.id = fontLinkId;
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap";
+        document.head.appendChild(link);
+    }, []);
     useEffect(() => {
         const timer = setTimeout(() => setIsLoading(false), 1400);
         return () => clearTimeout(timer);
@@ -374,15 +388,21 @@ function AppShell() {
                 backgroundColor: colors.panel,
                 borderTopColor: colors.border,
                 borderTopWidth: 1,
-                height: 74,
+                height: 82,
                 paddingBottom: 10,
                 paddingTop: 10,
+                ...(Platform.OS === "web"
+                    ? {
+                        backdropFilter: "blur(16px)",
+                        boxShadow: colors.shadow,
+                    }
+                    : {}),
             },
-            tabBarActiveTintColor: colors.primary,
+            tabBarActiveTintColor: colors.highlight,
             tabBarInactiveTintColor: colors.muted,
             tabBarLabelStyle: {
-                fontWeight: "800",
-                letterSpacing: 0.4,
+                fontWeight: "700",
+                letterSpacing: 0.6,
                 textTransform: "uppercase",
                 fontSize: 10,
             },
