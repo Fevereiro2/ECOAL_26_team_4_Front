@@ -7,7 +7,7 @@ function toRole(user) {
 function parseScore(raw, fallback) {
     const value = Number(raw);
     if (Number.isFinite(value) && value >= 0) {
-        return Math.max(0, Math.min(10, value));
+        return Math.max(0, Math.min(2, value));
     }
     return fallback;
 }
@@ -33,24 +33,28 @@ function findCriterionScore(criteria, ...names) {
 export function mapApiItemToLighter(item) {
     const criteria = item.criteria ?? [];
     const publicStatus = typeof item.status === "boolean" ? item.status : Boolean(item.status ?? true);
-    const categoryNames = [item.category1?.name, item.category1?.title, item.category2?.name, item.category2?.title].filter(Boolean);
+    const linkedCategories = Array.isArray(item.categories)
+        ? item.categories.map((category) => category?.name ?? category?.title).filter(Boolean)
+        : [];
+    const primaryCategory = item.category1?.name ?? item.category1?.title ?? linkedCategories[0] ?? null;
+    const secondaryCategory = item.category2?.name ?? item.category2?.title ?? linkedCategories[1] ?? null;
     return {
         id: String(item.id),
         ownerId: String(item.collection?.user_id ?? item.collection_id ?? "0"),
         name: item.title,
-        brand: item.category1?.name ?? item.category1?.title ?? "Uncategorized",
+        brand: primaryCategory ?? "Uncategorized",
         year: new Date().getFullYear(),
-        country: item.category2?.name ?? item.category2?.title ?? "Unknown",
-        mechanism: categoryNames[0] ?? "Unknown",
-        period: categoryNames[1] ?? "Unknown",
+        country: secondaryCategory ?? "Unknown",
+        mechanism: primaryCategory ?? "Unknown",
+        period: secondaryCategory ?? "Unknown",
         image: item.image_url?.trim() || "https://via.placeholder.com/512x512.png?text=Light+It",
         description: item.description?.trim() || "No description provided.",
         visibility: publicStatus ? "public" : "private",
         criteria: {
-            durability: parseScore(findCriterionScore(criteria, "durability", "durab"), 5),
-            value: parseScore(findCriterionScore(criteria, "price", "value", "prix"), 5),
-            rarity: parseScore(findCriterionScore(criteria, "rarity", "rareté", "rare"), 5),
-            autonomy: parseScore(findCriterionScore(criteria, "autonomy", "autonomie", "auto"), 5),
+            durability: parseScore(findCriterionScore(criteria, "durability", "durab"), 1),
+            value: parseScore(findCriterionScore(criteria, "price", "value", "prix"), 1),
+            rarity: parseScore(findCriterionScore(criteria, "rarity", "rareté", "rare"), 1),
+            autonomy: parseScore(findCriterionScore(criteria, "autonomy", "autonomie", "auto"), 1),
         },
     };
 }

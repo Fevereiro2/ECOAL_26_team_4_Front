@@ -38,7 +38,7 @@ export function DetailModal({ item, onClose, colors, user, onViewUser }) {
               <View key={c.label} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text style={{ color: colors.muted, width: 90 }}>{c.label}</Text>
                 <View style={{ flex: 1, height: 6, borderRadius: 99, backgroundColor: colors.border, overflow: "hidden" }}>
-                  <View style={{ width: `${(c.value / 10) * 100}%`, height: "100%", borderRadius: 99, backgroundColor: colors.primary }} />
+                  <View style={{ width: `${(c.value / 2) * 100}%`, height: "100%", borderRadius: 99, backgroundColor: colors.primary }} />
                 </View>
                 <Text style={{ color: colors.text, width: 30, textAlign: "right", fontSize: 13, fontWeight: "600" }}>{c.value}</Text>
               </View>
